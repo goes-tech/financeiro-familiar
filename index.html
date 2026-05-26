@@ -144,7 +144,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes &amp; Célia · v3.0</p></div>
 <nav>
 <div class="lbl">Principal</div>
-<a class="on" href="#" onclick="ir('dashboard',this)" class="on restrito">📊 Dashboard</a>
+<a class="on" href="#" onclick="ir('dashboard',this)" class="restrito">📊 Dashboard</a>
 <a href="#" onclick="ir('lancamento',this)">➕ Novo Lançamento</a>
 <a href="#" onclick="ir('extrato',this)" class="restrito">📋 Extrato</a>
 <div class="lbl">Relatórios</div>
@@ -167,7 +167,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </div>
 <div id="ct">
 <!-- DASHBOARD -->
-<div class="pg on" id="pg-dashboard">
+<div class="pg" id="pg-dashboard">
 <div class="flt">
 <div class="fg"><label>Mês</label>
 <select id="dm" onchange="dash()">
@@ -508,6 +508,7 @@ function abrir(email){
   document.getElementById('fd').value=new Date().toISOString().split('T')[0];
   // Controle de acesso por email
   const isAdmin = (email === 'goes@antoniocarlosdegoes.com');
+  _isAdmin = isAdmin;
   document.querySelectorAll('.restrito').forEach(el=>{
     el.style.display = isAdmin ? '' : 'none';
   });
@@ -577,7 +578,12 @@ const TT={dashboard:'Dashboard',lancamento:'Novo Lançamento',extrato:'Extrato',
   mensal:'Fechamento Mensal',anual:'Fechamento Anual','por-entidade':'Por Entidade','por-imovel':'Por Imóvel',
   imoveis:'Imóveis',bancos:'Bancos / Contas',categorias:'Categorias'};
 
+let _isAdmin = false;
+const _RESTRITOS = ['dashboard','extrato','mensal','anual','por-entidade','por-imovel'];
+
 function ir(id,el){
+  // Bloquear acesso a paginas restritas para nao-admin
+  if(_RESTRITOS.includes(id) && !_isAdmin) return;
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('#sb nav a').forEach(a=>a.classList.remove('on'));
   document.getElementById('pg-'+id).classList.add('on');
