@@ -35,6 +35,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);}
 #lmsg.i{background:#fff8e1;color:#b8860b;border:1px solid #ffe082;display:block;}
 .btn-fgt{background:none;border:none;color:var(--pl);font-size:12px;cursor:pointer;margin-top:10px;text-decoration:underline;}
 .lfoot{font-size:10px;color:#bbb;margin-top:16px;}
+.restrito{display:none;}
 /* APP */
 #as{display:none;min-height:100vh;}
 #sb{width:var(--sw);background:var(--p);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto;}
@@ -101,6 +102,16 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 .al.ok{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;}
 .al.er{background:#ffebee;color:#c62828;border:1px solid #ef9a9a;}
 .emp{text-align:center;padding:32px;color:var(--mu);}
+/* MODAL CONFIRMACAO */
+#modal-conf{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+#modal-conf.show{display:flex;}
+.modal-box{background:#fff;border-radius:14px;padding:28px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.modal-box h3{font-size:16px;font-weight:700;color:var(--p);margin-bottom:16px;}
+.modal-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bd);font-size:13px;}
+.modal-row .ml{color:var(--mu);font-size:11px;text-transform:uppercase;}
+.modal-row .mv{font-weight:600;color:var(--tx);}
+.modal-row .mv.G{color:#2e7d32;}.modal-row .mv.R{color:#c62828;}
+.modal-btns{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
 .emp .ei{font-size:40px;margin-bottom:8px;}
 .tr2 td{font-weight:700;background:#eef3ff!important;}
 @media(max-width:768px){:root{--sw:0px;}.chg{grid-column:1fr;}.fg2{grid-template-columns:1fr;}}
@@ -113,7 +124,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div class="ico">💼</div>
 <h1>Gestão Financeira Familiar</h1>
 <p class="sub">Goes &amp; Célia</p>
-<span class="vb">v3.1</span>
+<span class="vb">v3.0</span>
 <div class="lf"><label>E-mail</label>
 <input id="ie" onkeydown="if(event.key==='Enter')login()" placeholder="seu@email.com" type="email"/></div>
 <div class="lf"><label>Senha</label>
@@ -130,16 +141,17 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <!-- APP -->
 <div id="as">
 <nav id="sb">
-<div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes &amp; Célia · v3.1</p></div>
+<div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes &amp; Célia · v3.0</p></div>
 <nav>
 <div class="lbl">Principal</div>
-<a class="on" href="#" onclick="ir('dashboard',this)">📊 Dashboard</a>
+<a class="on" href="#" onclick="ir('dashboard',this)" class="on restrito">📊 Dashboard</a>
 <a href="#" onclick="ir('lancamento',this)">➕ Novo Lançamento</a>
-<a href="#" onclick="ir('extrato',this)">📋 Extrato</a>
+<a href="#" onclick="ir('extrato',this)" class="restrito">📋 Extrato</a>
 <div class="lbl">Relatórios</div>
-<a href="#" onclick="ir('mensal',this)">📅 Fechamento Mensal</a>
-<a href="#" onclick="ir('anual',this)">📆 Fechamento Anual</a>
-<a href="#" onclick="ir('por-entidade',this)">👤 Por Entidade</a>
+<a href="#" onclick="ir('mensal',this)" class="restrito">📅 Fechamento Mensal</a>
+<a href="#" onclick="ir('anual',this)" class="restrito">📆 Fechamento Anual</a>
+<a href="#" onclick="ir('por-entidade',this)" class="restrito">👤 Por Entidade</a>
+<a href="#" id="mn-imovel-rel" onclick="ir('por-imovel',this)" class="restrito">🏠 Por Imóvel</a>
 <div class="lbl">Cadastros</div>
 <a href="#" onclick="ir('imoveis',this)">🏠 Imóveis</a>
 <a href="#" onclick="ir('bancos',this)">🏦 Bancos / Contas</a>
@@ -235,7 +247,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <textarea id="fob" placeholder="Observações..." rows="2"></textarea></div>
 </div>
 <div class="bg">
-<button class="btn bp" onclick="salvar()">💾 Salvar Lançamento</button>
+<button class="btn bp" onclick="previewLanc()">💾 Salvar Lançamento</button>
 <button class="btn bw" onclick="limpar()">🔄 Limpar</button>
 </div>
 </div>
@@ -314,6 +326,20 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div id="po"></div>
 </div>
 <!-- IMÓVEIS -->
+<div class="pg" id="pg-por-imovel">
+<div class="flt">
+  <div class="fg"><label>Imóvel</label>
+    <select id="pim-sel"><option value="">Selecione...</option></select></div>
+  <div class="fg"><label>Ano</label>
+    <select id="pim-ano">
+      <option value="">Todos</option><option value="2023">2023</option>
+      <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
+    </select></div>
+  <button class="btn bp bsm" onclick="porImovel()" style="align-self:flex-end">📊 Gerar</button>
+</div>
+<div id="pim-out"></div>
+</div>
+
 <div class="pg" id="pg-imoveis">
 <div class="st"><span>🏠</span> Imóveis</div>
 <div class="fc" style="margin-bottom:18px">
@@ -480,6 +506,20 @@ function abrir(email){
   document.getElementById('ue').textContent=email;
   document.getElementById('td').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
   document.getElementById('fd').value=new Date().toISOString().split('T')[0];
+  // Controle de acesso por email
+  const isAdmin = (email === 'goes@antoniocarlosdegoes.com');
+  document.querySelectorAll('.restrito').forEach(el=>{
+    el.style.display = isAdmin ? '' : 'none';
+  });
+  // Se nao e admin, ir para lancamento como pagina inicial
+  if(!isAdmin){
+    document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+    document.querySelectorAll('#sb nav a').forEach(a=>a.classList.remove('on'));
+    document.getElementById('pg-lancamento').classList.add('on');
+    document.getElementById('pt').textContent='Novo Lançamento';
+    const lnk = document.querySelector('#sb nav a[onclick*="lancamento"]');
+    if(lnk) lnk.classList.add('on');
+  }
   // Popular im-codigo
   const ic=document.getElementById('ic');ic.innerHTML='<option value="">Selecione...</option>';
   for(let i=1;i<=45;i++){const o=document.createElement('option');o.value=`im${i}`;o.textContent=`im${i}`;ic.appendChild(o);}
@@ -494,6 +534,7 @@ function iniciar(){
   US.push(db.collection('lancamentos').orderBy('data','desc').onSnapshot(s=>{
     LL=s.docs.map(d=>({id:d.id,...d.data()}));
     sy(true);
+    popPimSel();
     dash(); // sempre atualiza dashboard
     const p=pg();
     if(p==='extrato') extrato();
@@ -505,7 +546,9 @@ function iniciar(){
   US.push(db.collection('imoveis').onSnapshot(s=>{
     IM={};s.docs.forEach(d=>{IM[d.id]=d.data();});
     popIm();
+    popPimSel();
     if(pg()==='imoveis') imTable();
+    if(pg()==='por-imovel') porImovel();
   }));
 
   US.push(db.doc('config/categorias').onSnapshot(s=>{
@@ -531,7 +574,7 @@ function pg(){const p=document.querySelector('.pg.on');return p?p.id.replace('pg
 // NAVEGAÇÃO
 // ═══════════════════════════════════════════════
 const TT={dashboard:'Dashboard',lancamento:'Novo Lançamento',extrato:'Extrato',
-  mensal:'Fechamento Mensal',anual:'Fechamento Anual','por-entidade':'Por Entidade',
+  mensal:'Fechamento Mensal',anual:'Fechamento Anual','por-entidade':'Por Entidade','por-imovel':'Por Imóvel',
   imoveis:'Imóveis',bancos:'Bancos / Contas',categorias:'Categorias'};
 
 function ir(id,el){
@@ -545,6 +588,7 @@ function ir(id,el){
   if(id==='mensal')       mensal();
   if(id==='anual')        anual();
   if(id==='por-entidade') porEnt();
+  if(id==='por-imovel')    porImovel();
   if(id==='imoveis')      imTable();
   if(id==='bancos')       bkTable();
   if(id==='categorias')   ctTable();
@@ -587,6 +631,44 @@ function popIm(){
   const s=document.getElementById('fim');if(!s)return;
   s.innerHTML='<option value="">Nenhum</option>';
   for(let i=1;i<=45;i++){const c=`im${i}`,im=IM[c];const o=document.createElement('option');o.value=c;o.textContent=im?`${c} – ${im.desc}`:c;s.appendChild(o);}
+}
+
+// Dados temporarios para confirmacao
+let _dadosLanc = null;
+
+function previewLanc(){
+  const d=document.getElementById('fd').value, t=document.getElementById('ft').value;
+  const e=document.getElementById('fen').value, b=document.getElementById('fb').value;
+  const cat=document.getElementById('fc2').value, v=parseFloat(document.getElementById('fv').value);
+  const de=document.getElementById('fde').value.trim();
+  if(!d||!t||!e||!b||!cat||!v||!de){alrt('la','er','⚠️ Preencha todos os campos obrigatórios (*).');return;}
+  const entNome=ENT.find(x=>x.id===e)?.n||e;
+  const sinal=t==='Receita'?'G':t==='Despesa'?'R':'';
+  _dadosLanc={d,t,e,b,cat,v,de,entNome,sinal};
+  document.getElementById('modal-body').innerHTML=`
+    <div class="modal-row"><span class="ml">Data</span><span class="mv">${fd(d)}</span></div>
+    <div class="modal-row"><span class="ml">Tipo</span><span class="mv">${t}</span></div>
+    <div class="modal-row"><span class="ml">Entidade</span><span class="mv">${entNome}</span></div>
+    <div class="modal-row"><span class="ml">Banco / Conta</span><span class="mv">${b}</span></div>
+    <div class="modal-row"><span class="ml">Categoria</span><span class="mv">${cat}</span></div>
+    <div class="modal-row"><span class="ml">Valor</span><span class="mv ${sinal}">${sinal==='G'?'+':sinal==='R'?'-':''} ${fr(v)}</span></div>
+    <div class="modal-row"><span class="ml">Descrição</span><span class="mv">${de}</span></div>
+    <div class="modal-row"><span class="ml">Status</span><span class="mv">${document.getElementById('fst').value}</span></div>
+    ${document.getElementById('fim').value?`<div class="modal-row"><span class="ml">Imóvel</span><span class="mv">${document.getElementById('fim').value}</span></div>`:''}
+    ${document.getElementById('fve').value?`<div class="modal-row"><span class="ml">Veículo</span><span class="mv">${document.getElementById('fve').value}</span></div>`:''}
+    ${document.getElementById('fo').value?`<div class="modal-row"><span class="ml">Conta Outra</span><span class="mv">${document.getElementById('fo').options[document.getElementById('fo').selectedIndex].text}</span></div>`:''}
+  `;
+  document.getElementById('modal-conf').classList.add('show');
+}
+
+function fecharModal(){
+  document.getElementById('modal-conf').classList.remove('show');
+  _dadosLanc=null;
+}
+
+async function confirmarSalvar(){
+  document.getElementById('modal-conf').classList.remove('show');
+  await salvar();
 }
 
 async function salvar(){
@@ -869,6 +951,52 @@ function ctTable(){
 // ═══════════════════════════════════════════════
 // UTILITÁRIOS
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// POR IMOVEL
+// ═══════════════════════════════════════════════
+function porImovel(){
+  const im=document.getElementById('pim-sel').value;
+  const a=document.getElementById('pim-ano').value;
+  const o=document.getElementById('pim-out');
+  if(!im){o.innerHTML='<div class="emp"><div class="ei">🏠</div><p>Selecione um imóvel.</p></div>';return;}
+  let L=LL.filter(l=>l.imovel===im);
+  if(a) L=L.filter(l=>new Date(l.data+'T12:00:00').getFullYear()===parseInt(a));
+  if(!L.length){o.innerHTML='<div class="emp"><div class="ei">🏠</div><p>Nenhum lançamento para este imóvel.</p></div>';return;}
+  const r=L.filter(l=>l.tipo==='Receita').reduce((s,l)=>s+l.valor,0);
+  const d=L.filter(l=>l.tipo==='Despesa').reduce((s,l)=>s+l.valor,0);
+  const imDados=IM[im];
+  const imLabel=imDados?`${im} – ${imDados.desc}`:im;
+  let h=`<div class="st"><span>🏠</span>${imLabel} ${a?'– '+a:''}</div>
+  <div class="cg">
+    <div class="card G"><div class="cl">Receitas</div><div class="cv">${fr(r)}</div><div class="cs">${L.filter(l=>l.tipo==='Receita').length} lançamentos</div></div>
+    <div class="card R"><div class="cl">Despesas</div><div class="cv">${fr(d)}</div><div class="cs">${L.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
+    <div class="card ${r-d>=0?'B':'R'}"><div class="cl">Resultado</div><div class="cv">${fr(r-d)}</div></div>
+    ${imDados&&imDados.aluguel>0?`<div class="card Y"><div class="cl">Aluguel Mensal</div><div class="cv">${fr(imDados.aluguel)}</div><div class="cs">${imDados.prop}</div></div>`:''}
+  </div>
+  <div class="card"><div class="tw"><table>
+    <thead><tr><th>Data</th><th>Tipo</th><th>Entidade</th><th>Banco</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead>
+    <tbody>`;
+  L.sort((a,b)=>b.data.localeCompare(a.data)).forEach(l=>{
+    const s=l.tipo==='Receita'?'+':l.tipo==='Despesa'?'-':'';
+    const col=l.tipo==='Receita'?'color:#2e7d32':l.tipo==='Despesa'?'color:#c62828':'';
+    h+=`<tr><td>${fd(l.data)}</td><td>${l.tipo}</td><td>${l.entidade}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}</td><td style="font-weight:600;${col}">${s} ${fr(l.valor)}</td><td>${l.status}</td></tr>`;
+  });
+  h+=`</tbody></table></div></div>`;
+  o.innerHTML=h;
+}
+
+// Popular select de imoveis na pagina por-imovel
+function popPimSel(){
+  const s=document.getElementById('pim-sel');
+  if(!s)return;
+  s.innerHTML='<option value="">Selecione...</option>';
+  const ks=Object.keys(IM).sort((a,b)=>parseInt(a.replace('im',''))-parseInt(b.replace('im','')));
+  ks.forEach(k=>{const im=IM[k];const o=document.createElement('option');o.value=k;o.textContent=im?`${k} – ${im.desc}`:k;s.appendChild(o);});
+  // Adicionar imoveis sem cadastro que aparecem em lancamentos
+  const usados=new Set(LL.map(l=>l.imovel).filter(x=>x&&!IM[x]));
+  usados.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;s.appendChild(o);});
+}
+
 function fr(v){return(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
 function fd(d){if(!d)return'';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;}
 function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}">${m}</div>`;}
