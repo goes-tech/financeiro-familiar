@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Gestão Financeira – Goes &amp; Célia | v3.1</title>
+<title>Gestão Financeira – Goes &amp; Célia | v3.0</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -35,8 +35,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);}
 #lmsg.i{background:#fff8e1;color:#b8860b;border:1px solid #ffe082;display:block;}
 .btn-fgt{background:none;border:none;color:var(--pl);font-size:12px;cursor:pointer;margin-top:10px;text-decoration:underline;}
 .lfoot{font-size:10px;color:#bbb;margin-top:16px;}
-.restrito{display:none !important;}
-/* APP */
+/* APP - oculto por padrão */
 #as{display:none;min-height:100vh;}
 #sb{width:var(--sw);background:var(--p);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow-y:auto;}
 #sb .logo{padding:16px 15px 12px;border-bottom:1px solid rgba(255,255,255,.15);}
@@ -102,19 +101,18 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 .al.ok{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;}
 .al.er{background:#ffebee;color:#c62828;border:1px solid #ef9a9a;}
 .emp{text-align:center;padding:32px;color:var(--mu);}
-/* MODAL CONFIRMACAO */
-#modal-conf{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
-#modal-conf.show{display:flex;}
-.modal-box{background:#fff;border-radius:14px;padding:28px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);}
-.modal-box h3{font-size:16px;font-weight:700;color:var(--p);margin-bottom:16px;}
-.modal-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bd);font-size:13px;}
-.modal-row .ml{color:var(--mu);font-size:11px;text-transform:uppercase;}
-.modal-row .mv{font-weight:600;color:var(--tx);}
-.modal-row .mv.G{color:#2e7d32;}.modal-row .mv.R{color:#c62828;}
-.modal-btns{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
 .emp .ei{font-size:40px;margin-bottom:8px;}
 .tr2 td{font-weight:700;background:#eef3ff!important;}
-@media(max-width:768px){:root{--sw:0px;}.chg{grid-column:1fr;}.fg2{grid-template-columns:1fr;}}
+/* MODAL */
+#mconf{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+#mconf.show{display:flex;}
+.mbox{background:#fff;border-radius:14px;padding:28px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.mbox h3{font-size:16px;font-weight:700;color:var(--p);margin-bottom:16px;}
+.mrow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bd);font-size:13px;}
+.mrow .ml{color:var(--mu);font-size:11px;text-transform:uppercase;}
+.mrow .mv{font-weight:600;}.mrow .mv.G{color:#2e7d32;}.mrow .mv.R{color:#c62828;}
+.mbtns{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
+@media(max-width:768px){:root{--sw:0px;}.chg{grid-template-columns:1fr;}.fg2{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -135,27 +133,15 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <button class="btn-in" id="btn-in" onclick="login()">🔐 Entrar</button>
 <div id="lmsg"></div>
 <button class="btn-fgt" onclick="reset()">Esqueci minha senha</button>
-<div class="lfoot">🔒 Firebase Authentication · v3.1</div>
+<div class="lfoot">🔒 Firebase Authentication · v3.0</div>
 </div>
 </div>
-<!-- APP -->
+<!-- APP (completamente oculto até login) -->
 <div id="as">
 <nav id="sb">
 <div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes &amp; Célia · v3.0</p></div>
-<nav>
-<div class="lbl">Principal</div>
-<a class="on" href="#" onclick="ir('dashboard',this)" class="restrito">📊 Dashboard</a>
-<a href="#" onclick="ir('lancamento',this)">➕ Novo Lançamento</a>
-<a href="#" onclick="ir('extrato',this)" class="restrito">📋 Extrato</a>
-<div class="lbl">Relatórios</div>
-<a href="#" onclick="ir('mensal',this)" class="restrito">📅 Fechamento Mensal</a>
-<a href="#" onclick="ir('anual',this)" class="restrito">📆 Fechamento Anual</a>
-<a href="#" onclick="ir('por-entidade',this)" class="restrito">👤 Por Entidade</a>
-<a href="#" id="mn-imovel-rel" onclick="ir('por-imovel',this)" class="restrito">🏠 Por Imóvel</a>
-<div class="lbl">Cadastros</div>
-<a href="#" onclick="ir('imoveis',this)">🏠 Imóveis</a>
-<a href="#" onclick="ir('bancos',this)">🏦 Bancos / Contas</a>
-<a href="#" onclick="ir('categorias',this)">🏷️ Categorias</a>
+<nav id="sb-nav">
+<!-- Menu montado dinamicamente pelo JS após login -->
 </nav>
 <div class="up"><div class="ue" id="ue"></div>
 <button class="btn-out" onclick="logout()">🚪 Sair</button></div>
@@ -166,7 +152,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div class="tr"><span id="sy">🟡 Conectando...</span><span class="db" id="td"></span></div>
 </div>
 <div id="ct">
-<!-- DASHBOARD -->
+<!-- DASHBOARD (admin only) -->
 <div class="pg" id="pg-dashboard">
 <div class="flt">
 <div class="fg"><label>Mês</label>
@@ -191,7 +177,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <option value="eva">EVA</option><option value="sempra">SEMPRA (Holding)</option>
 </select></div>
 </div>
-<div class="cg" id="dc"><div class="emp"><div class="ei">⏳</div><p>Aguardando dados...</p></div></div>
+<div class="cg" id="dc"><div class="emp"><div class="ei">⏳</div><p>Carregando...</p></div></div>
 <div class="chg">
 <div class="cc"><h3>📈 Receitas vs Despesas</h3><canvas id="c1"></canvas></div>
 <div class="cc"><h3>🏷️ Despesas por Categoria</h3><canvas id="c2"></canvas></div>
@@ -200,7 +186,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div class="cc cf"><h3>📊 Fluxo de Caixa Diário</h3><canvas id="c5"></canvas></div>
 </div>
 </div>
-<!-- LANÇAMENTO -->
+<!-- LANÇAMENTO (todos) -->
 <div class="pg" id="pg-lancamento">
 <div id="la"></div>
 <div class="fc">
@@ -252,7 +238,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </div>
 </div>
 </div>
-<!-- EXTRATO -->
+<!-- EXTRATO (admin only) -->
 <div class="pg" id="pg-extrato">
 <div class="flt">
 <div class="fg"><label>De</label><input id="ede" type="date"/></div>
@@ -276,7 +262,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </div>
 <div class="card"><div class="tw" id="et"></div></div>
 </div>
-<!-- MENSAL -->
+<!-- MENSAL (admin only) -->
 <div class="pg" id="pg-mensal">
 <div class="flt">
 <div class="fg"><label>Mês</label>
@@ -295,7 +281,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </div>
 <div id="mo"></div>
 </div>
-<!-- ANUAL -->
+<!-- ANUAL (admin only) -->
 <div class="pg" id="pg-anual">
 <div class="flt">
 <div class="fg"><label>Ano</label>
@@ -307,7 +293,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </div>
 <div id="ao"></div>
 </div>
-<!-- POR ENTIDADE -->
+<!-- POR ENTIDADE (admin only) -->
 <div class="pg" id="pg-por-entidade">
 <div class="flt">
 <div class="fg"><label>Entidade</label>
@@ -325,21 +311,21 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </div>
 <div id="po"></div>
 </div>
-<!-- IMÓVEIS -->
+<!-- POR IMÓVEL (admin only) -->
 <div class="pg" id="pg-por-imovel">
 <div class="flt">
-  <div class="fg"><label>Imóvel</label>
-    <select id="pim-sel"><option value="">Selecione...</option></select></div>
-  <div class="fg"><label>Ano</label>
-    <select id="pim-ano">
-      <option value="">Todos</option><option value="2023">2023</option>
-      <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
-    </select></div>
-  <button class="btn bp bsm" onclick="porImovel()" style="align-self:flex-end">📊 Gerar</button>
+<div class="fg"><label>Imóvel</label>
+<select id="pim"><option value="">Selecione...</option></select></div>
+<div class="fg"><label>Ano</label>
+<select id="pima">
+<option value="">Todos</option><option value="2023">2023</option>
+<option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
+</select></div>
+<button class="btn bp bsm" onclick="porImovel()" style="align-self:flex-end">📊 Gerar</button>
 </div>
-<div id="pim-out"></div>
+<div id="pio"></div>
 </div>
-
+<!-- IMÓVEIS (todos) -->
 <div class="pg" id="pg-imoveis">
 <div class="st"><span>🏠</span> Imóveis</div>
 <div class="fc" style="margin-bottom:18px">
@@ -366,7 +352,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </div>
 <div class="card"><div class="tw" id="it"></div></div>
 </div>
-<!-- BANCOS -->
+<!-- BANCOS (todos) -->
 <div class="pg" id="pg-bancos">
 <div class="st"><span>🏦</span> Bancos / Contas</div>
 <div class="fc" style="margin-bottom:18px">
@@ -385,7 +371,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </div>
 <div class="card"><div class="tw" id="bt2"></div></div>
 </div>
-<!-- CATEGORIAS -->
+<!-- CATEGORIAS (todos) -->
 <div class="pg" id="pg-categorias">
 <div class="st"><span>🏷️</span> Categorias</div>
 <div class="fc" style="margin-bottom:18px">
@@ -405,9 +391,20 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </div>
 </div>
 </div>
+<!-- MODAL CONFIRMAÇÃO -->
+<div id="mconf">
+<div class="mbox">
+<h3>🔍 Confirmar Lançamento</h3>
+<div id="mbody"></div>
+<div class="mbtns">
+<button class="btn bw" onclick="document.getElementById('mconf').classList.remove('show')">✏️ Corrigir</button>
+<button class="btn bp" onclick="confirmar()">✅ Confirmar e Salvar</button>
+</div>
+</div>
+</div>
 <script>
 // ═══════════════════════════════════════════════
-// FIREBASE INIT
+// FIREBASE
 // ═══════════════════════════════════════════════
 firebase.initializeApp({
   apiKey:"AIzaSyBF86Y3VuXWGLJZaFUzAC74_d4SqeXelGs",
@@ -423,6 +420,7 @@ const db   = firebase.firestore();
 // ═══════════════════════════════════════════════
 // DADOS MESTRES
 // ═══════════════════════════════════════════════
+const ADMIN_EMAIL = 'goes@antoniocarlosdegoes.com';
 const ENT = [
   {id:'goes',  n:'Goes (Pessoal)'},
   {id:'celia', n:'Célia (Pessoal)'},
@@ -456,6 +454,33 @@ const MES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agos
 // ESTADO
 // ═══════════════════════════════════════════════
 let LL=[], IM={}, CT=JSON.parse(JSON.stringify(CT0)), BK=JSON.parse(JSON.stringify(BK0)), US=[];
+let isAdmin = false;
+
+// ═══════════════════════════════════════════════
+// MENUS POR PERFIL
+// ═══════════════════════════════════════════════
+const MENU_ADMIN = `
+  <div class="lbl">Principal</div>
+  <a href="#" onclick="ir('dashboard',this)">📊 Dashboard</a>
+  <a href="#" onclick="ir('lancamento',this)">➕ Novo Lançamento</a>
+  <a href="#" onclick="ir('extrato',this)">📋 Extrato</a>
+  <div class="lbl">Relatórios</div>
+  <a href="#" onclick="ir('mensal',this)">📅 Fechamento Mensal</a>
+  <a href="#" onclick="ir('anual',this)">📆 Fechamento Anual</a>
+  <a href="#" onclick="ir('por-entidade',this)">👤 Por Entidade</a>
+  <a href="#" onclick="ir('por-imovel',this)">🏠 Por Imóvel</a>
+  <div class="lbl">Cadastros</div>
+  <a href="#" onclick="ir('imoveis',this)">🏠 Imóveis</a>
+  <a href="#" onclick="ir('bancos',this)">🏦 Bancos / Contas</a>
+  <a href="#" onclick="ir('categorias',this)">🏷️ Categorias</a>`;
+
+const MENU_USER = `
+  <div class="lbl">Lançamentos</div>
+  <a href="#" onclick="ir('lancamento',this)">➕ Novo Lançamento</a>
+  <div class="lbl">Cadastros</div>
+  <a href="#" onclick="ir('imoveis',this)">🏠 Imóveis</a>
+  <a href="#" onclick="ir('bancos',this)">🏦 Bancos / Contas</a>
+  <a href="#" onclick="ir('categorias',this)">🏷️ Categorias</a>`;
 
 // ═══════════════════════════════════════════════
 // AUTH
@@ -467,7 +492,7 @@ async function login(){
   const btn=document.getElementById('btn-in');
   if(!em||!pw){msg('⚠️ Preencha e-mail e senha.','e');return;}
   btn.disabled=true;btn.textContent='⏳ Entrando...';
-  msg('⏳ Conectando ao Firebase...','i');
+  msg('⏳ Conectando...','i');
   try{
     await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
     const c=await auth.signInWithEmailAndPassword(em,pw);
@@ -493,38 +518,44 @@ async function reset(){
 async function logout(){
   if(!confirm('Deseja sair?'))return;
   parar();await auth.signOut();sessionStorage.removeItem('gf');
+  // Resetar app
+  isAdmin=false;
   document.getElementById('as').style.display='none';
   document.getElementById('ls').style.display='flex';
   document.getElementById('ie').value='';document.getElementById('is').value='';
-  msg('','i');document.getElementById('btn-in').disabled=false;document.getElementById('btn-in').textContent='🔐 Entrar';
+  document.getElementById('lmsg').style.display='none';
+  document.getElementById('btn-in').disabled=false;document.getElementById('btn-in').textContent='🔐 Entrar';
+  // Limpar todas as páginas ativas
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
 }
 
 function abrir(email){
   sessionStorage.setItem('gf','1');
+  isAdmin = (email === ADMIN_EMAIL);
+
+  // Montar menu correto
+  document.getElementById('sb-nav').innerHTML = isAdmin ? MENU_ADMIN : MENU_USER;
+
+  // Mostrar app
   document.getElementById('ls').style.display='none';
   document.getElementById('as').style.display='flex';
   document.getElementById('ue').textContent=email;
   document.getElementById('td').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
   document.getElementById('fd').value=new Date().toISOString().split('T')[0];
-  // Controle de acesso por email
-  const isAdmin = (email === 'goes@antoniocarlosdegoes.com');
-  _isAdmin = isAdmin;
-  document.querySelectorAll('.restrito').forEach(el=>{
-    el.style.display = isAdmin ? '' : 'none';
-  });
-  // Se nao e admin, ir para lancamento como pagina inicial
-  if(!isAdmin){
-    document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
-    document.querySelectorAll('#sb nav a').forEach(a=>a.classList.remove('on'));
-    document.getElementById('pg-lancamento').classList.add('on');
-    document.getElementById('pt').textContent='Novo Lançamento';
-    const lnk = document.querySelector('#sb nav a[onclick*="lancamento"]');
-    if(lnk) lnk.classList.add('on');
-  }
+
   // Popular im-codigo
   const ic=document.getElementById('ic');ic.innerHTML='<option value="">Selecione...</option>';
   for(let i=1;i<=45;i++){const o=document.createElement('option');o.value=`im${i}`;o.textContent=`im${i}`;ic.appendChild(o);}
+
+  // Iniciar listeners
   iniciar();
+
+  // Página inicial conforme perfil
+  if(isAdmin){
+    ir('dashboard', null);
+  } else {
+    ir('lancamento', null);
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -535,19 +566,20 @@ function iniciar(){
   US.push(db.collection('lancamentos').orderBy('data','desc').onSnapshot(s=>{
     LL=s.docs.map(d=>({id:d.id,...d.data()}));
     sy(true);
-    popPimSel();
-    dash(); // sempre atualiza dashboard
-    const p=pg();
-    if(p==='extrato') extrato();
-    if(p==='mensal')  mensal();
-    if(p==='anual')   anual();
-    if(p==='por-entidade') porEnt();
+    if(isAdmin){
+      dash();
+      const p=pg();
+      if(p==='extrato') extrato();
+      if(p==='mensal')  mensal();
+      if(p==='anual')   anual();
+      if(p==='por-entidade') porEnt();
+      if(p==='por-imovel')   porImovel();
+    }
   },()=>sy(false)));
 
   US.push(db.collection('imoveis').onSnapshot(s=>{
     IM={};s.docs.forEach(d=>{IM[d.id]=d.data();});
-    popIm();
-    popPimSel();
+    popIm();popPim();
     if(pg()==='imoveis') imTable();
     if(pg()==='por-imovel') porImovel();
   }));
@@ -564,7 +596,7 @@ function iniciar(){
     if(pg()==='bancos') bkTable();
   }));
 
-  popDest();popOutra();popIm();
+  popDest();popOutra();popIm();popPim();
 }
 
 function parar(){US.forEach(u=>u());US=[];LL=[];IM={};}
@@ -575,17 +607,12 @@ function pg(){const p=document.querySelector('.pg.on');return p?p.id.replace('pg
 // NAVEGAÇÃO
 // ═══════════════════════════════════════════════
 const TT={dashboard:'Dashboard',lancamento:'Novo Lançamento',extrato:'Extrato',
-  mensal:'Fechamento Mensal',anual:'Fechamento Anual','por-entidade':'Por Entidade','por-imovel':'Por Imóvel',
-  imoveis:'Imóveis',bancos:'Bancos / Contas',categorias:'Categorias'};
-
-let _isAdmin = false;
-const _RESTRITOS = ['dashboard','extrato','mensal','anual','por-entidade','por-imovel'];
+  mensal:'Fechamento Mensal',anual:'Fechamento Anual','por-entidade':'Por Entidade',
+  'por-imovel':'Por Imóvel',imoveis:'Imóveis',bancos:'Bancos / Contas',categorias:'Categorias'};
 
 function ir(id,el){
-  // Bloquear acesso a paginas restritas para nao-admin
-  if(_RESTRITOS.includes(id) && !_isAdmin) return;
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
-  document.querySelectorAll('#sb nav a').forEach(a=>a.classList.remove('on'));
+  document.querySelectorAll('#sb-nav a').forEach(a=>a.classList.remove('on'));
   document.getElementById('pg-'+id).classList.add('on');
   if(el)el.classList.add('on');
   document.getElementById('pt').textContent=TT[id]||id;
@@ -594,7 +621,7 @@ function ir(id,el){
   if(id==='mensal')       mensal();
   if(id==='anual')        anual();
   if(id==='por-entidade') porEnt();
-  if(id==='por-imovel')    porImovel();
+  if(id==='por-imovel')   porImovel();
   if(id==='imoveis')      imTable();
   if(id==='bancos')       bkTable();
   if(id==='categorias')   ctTable();
@@ -639,56 +666,63 @@ function popIm(){
   for(let i=1;i<=45;i++){const c=`im${i}`,im=IM[c];const o=document.createElement('option');o.value=c;o.textContent=im?`${c} – ${im.desc}`:c;s.appendChild(o);}
 }
 
-// Dados temporarios para confirmacao
-let _dadosLanc = null;
+function popPim(){
+  const s=document.getElementById('pim');if(!s)return;
+  s.innerHTML='<option value="">Selecione...</option>';
+  const ks=Object.keys(IM).sort((a,b)=>parseInt(a.replace('im',''))-parseInt(b.replace('im','')));
+  ks.forEach(k=>{const im=IM[k];const o=document.createElement('option');o.value=k;o.textContent=im?`${k} – ${im.desc}`:k;s.appendChild(o);});
+  // Imóveis usados em lançamentos mas não cadastrados
+  const usados=new Set(LL.map(l=>l.imovel).filter(x=>x&&!IM[x]));
+  usados.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;s.appendChild(o);});
+}
 
+// Preview antes de salvar
+let _prev=null;
 function previewLanc(){
   const d=document.getElementById('fd').value, t=document.getElementById('ft').value;
   const e=document.getElementById('fen').value, b=document.getElementById('fb').value;
   const cat=document.getElementById('fc2').value, v=parseFloat(document.getElementById('fv').value);
   const de=document.getElementById('fde').value.trim();
   if(!d||!t||!e||!b||!cat||!v||!de){alrt('la','er','⚠️ Preencha todos os campos obrigatórios (*).');return;}
-  const entNome=ENT.find(x=>x.id===e)?.n||e;
-  const sinal=t==='Receita'?'G':t==='Despesa'?'R':'';
-  _dadosLanc={d,t,e,b,cat,v,de,entNome,sinal};
-  document.getElementById('modal-body').innerHTML=`
-    <div class="modal-row"><span class="ml">Data</span><span class="mv">${fd(d)}</span></div>
-    <div class="modal-row"><span class="ml">Tipo</span><span class="mv">${t}</span></div>
-    <div class="modal-row"><span class="ml">Entidade</span><span class="mv">${entNome}</span></div>
-    <div class="modal-row"><span class="ml">Banco / Conta</span><span class="mv">${b}</span></div>
-    <div class="modal-row"><span class="ml">Categoria</span><span class="mv">${cat}</span></div>
-    <div class="modal-row"><span class="ml">Valor</span><span class="mv ${sinal}">${sinal==='G'?'+':sinal==='R'?'-':''} ${fr(v)}</span></div>
-    <div class="modal-row"><span class="ml">Descrição</span><span class="mv">${de}</span></div>
-    <div class="modal-row"><span class="ml">Status</span><span class="mv">${document.getElementById('fst').value}</span></div>
-    ${document.getElementById('fim').value?`<div class="modal-row"><span class="ml">Imóvel</span><span class="mv">${document.getElementById('fim').value}</span></div>`:''}
-    ${document.getElementById('fve').value?`<div class="modal-row"><span class="ml">Veículo</span><span class="mv">${document.getElementById('fve').value}</span></div>`:''}
-    ${document.getElementById('fo').value?`<div class="modal-row"><span class="ml">Conta Outra</span><span class="mv">${document.getElementById('fo').options[document.getElementById('fo').selectedIndex].text}</span></div>`:''}
-  `;
-  document.getElementById('modal-conf').classList.add('show');
+  const en=ENT.find(x=>x.id===e)?.n||e;
+  const sg=t==='Receita'?'G':t==='Despesa'?'R':'';
+  _prev={d,t,e,b,cat,v,de,en,sg};
+  const fim=document.getElementById('fim').value;
+  const fve=document.getElementById('fve').value;
+  const fo=document.getElementById('fo');
+  const foTxt=fo.options[fo.selectedIndex]?.text||'';
+  document.getElementById('mbody').innerHTML=`
+    <div class="mrow"><span class="ml">Data</span><span class="mv">${fd(d)}</span></div>
+    <div class="mrow"><span class="ml">Tipo</span><span class="mv">${t}</span></div>
+    <div class="mrow"><span class="ml">Entidade</span><span class="mv">${en}</span></div>
+    <div class="mrow"><span class="ml">Banco / Conta</span><span class="mv">${b}</span></div>
+    <div class="mrow"><span class="ml">Categoria</span><span class="mv">${cat}</span></div>
+    <div class="mrow"><span class="ml">Valor</span><span class="mv ${sg}">${sg==='G'?'+':sg==='R'?'-':''} ${fr(v)}</span></div>
+    <div class="mrow"><span class="ml">Descrição</span><span class="mv">${de}</span></div>
+    <div class="mrow"><span class="ml">Status</span><span class="mv">${document.getElementById('fst').value}</span></div>
+    ${fim?`<div class="mrow"><span class="ml">Imóvel</span><span class="mv">${fim}</span></div>`:''}
+    ${fve?`<div class="mrow"><span class="ml">Veículo</span><span class="mv">${fve}</span></div>`:''}
+    ${fo.value?`<div class="mrow"><span class="ml">Conta Outra</span><span class="mv">${foTxt}</span></div>`:''}`;
+  document.getElementById('mconf').classList.add('show');
 }
 
-function fecharModal(){
-  document.getElementById('modal-conf').classList.remove('show');
-  _dadosLanc=null;
-}
-
-async function confirmarSalvar(){
-  document.getElementById('modal-conf').classList.remove('show');
+async function confirmar(){
+  document.getElementById('mconf').classList.remove('show');
   await salvar();
 }
 
 async function salvar(){
   const d=document.getElementById('fd').value, t=document.getElementById('ft').value;
   const e=document.getElementById('fen').value, b=document.getElementById('fb').value;
-  const c=document.getElementById('fc2').value, v=parseFloat(document.getElementById('fv').value);
+  const cat=document.getElementById('fc2').value, v=parseFloat(document.getElementById('fv').value);
   const de=document.getElementById('fde').value.trim();
-  if(!d||!t||!e||!b||!c||!v||!de){alrt('la','er','⚠️ Preencha todos os campos obrigatórios (*).');return;}
+  if(!d||!t||!e||!b||!cat||!v||!de){alrt('la','er','⚠️ Preencha todos os campos obrigatórios (*).');return;}
   const btn=document.querySelector('#pg-lancamento .bp');
   btn.disabled=true;btn.textContent='⏳ Salvando...';
   try{
     await db.collection('lancamentos').add({
       data:d,tipo:t,entidade:ENT.find(x=>x.id===e)?.n||e,entidadeId:e,
-      banco:b,categoria:c,valor:v,descricao:de,
+      banco:b,categoria:cat,valor:v,descricao:de,
       contaOutra:document.getElementById('fo').value||'',
       imovel:document.getElementById('fim').value||'',
       veiculo:document.getElementById('fve').value||'',
@@ -762,6 +796,7 @@ let CH={};
 function dc(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
 
 function dash(){
+  if(!isAdmin) return;
   let L=[...LL];
   const m=document.getElementById('dm')?.value||'';
   const a=document.getElementById('da')?.value||'';
@@ -769,42 +804,29 @@ function dash(){
   if(m) L=L.filter(l=>new Date(l.data+'T12:00:00').getMonth()+1===parseInt(m));
   if(a) L=L.filter(l=>new Date(l.data+'T12:00:00').getFullYear()===parseInt(a));
   if(e) L=L.filter(l=>l.entidadeId===e);
-
   const r=L.filter(l=>l.tipo==='Receita').reduce((s,l)=>s+l.valor,0);
   const d=L.filter(l=>l.tipo==='Despesa').reduce((s,l)=>s+l.valor,0);
   const i=L.filter(l=>l.tipo==='Investimento').reduce((s,l)=>s+l.valor,0);
   const sl=r-d;
-
   document.getElementById('dc').innerHTML=`
     <div class="card G"><div class="cl">Receitas</div><div class="cv">${fr(r)}</div><div class="cs">${L.filter(l=>l.tipo==='Receita').length} lançamentos</div></div>
     <div class="card R"><div class="cl">Despesas</div><div class="cv">${fr(d)}</div><div class="cs">${L.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
     <div class="card ${sl>=0?'B':'R'}"><div class="cl">Saldo Líquido</div><div class="cv">${fr(sl)}</div><div class="cs">${sl>=0?'Positivo':'Negativo'}</div></div>
     <div class="card Y"><div class="cl">Investimentos</div><div class="cv">${fr(i)}</div><div class="cs">${L.filter(l=>l.tipo==='Investimento').length} lançamentos</div></div>
     <div class="card B"><div class="cl">Total Lançamentos</div><div class="cv">${L.length}</div><div class="cs">no período</div></div>`;
-
   ['c1','c2','c3','c4','c5'].forEach(id=>dc(id));
   if(!L.length) return;
-
-  // Receitas vs Despesas por mês
   const md={};
   L.forEach(l=>{const dt=new Date(l.data+'T12:00:00');const k=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;if(!md[k])md[k]={r:0,d:0};if(l.tipo==='Receita')md[k].r+=l.valor;if(l.tipo==='Despesa')md[k].d+=l.valor;});
   const mk=Object.keys(md).sort();
   CH['c1']=new Chart(document.getElementById('c1'),{type:'bar',data:{labels:mk.map(k=>{const[y,m]=k.split('-');return`${MES[parseInt(m)-1].slice(0,3)}/${y}`;}),datasets:[{label:'Receitas',data:mk.map(k=>md[k].r),backgroundColor:'#70AD47'},{label:'Despesas',data:mk.map(k=>md[k].d),backgroundColor:'#C00000'}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
-
-  // Categorias
   const cd={};L.filter(l=>l.tipo==='Despesa').forEach(l=>{cd[l.categoria]=(cd[l.categoria]||0)+l.valor;});
   const ck=Object.keys(cd).sort((a,b)=>cd[b]-cd[a]).slice(0,8);
   if(ck.length)CH['c2']=new Chart(document.getElementById('c2'),{type:'doughnut',data:{labels:ck,datasets:[{data:ck.map(k=>cd[k]),backgroundColor:['#2E75B6','#70AD47','#ED7D31','#FFC000','#7030A0','#C00000','#9DC3E6','#375623']}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
-
-  // Por entidade
   const ed={};L.forEach(l=>{ed[l.entidade]=(ed[l.entidade]||0)+l.valor;});
   CH['c3']=new Chart(document.getElementById('c3'),{type:'bar',data:{labels:Object.keys(ed),datasets:[{label:'Volume',data:Object.values(ed),backgroundColor:['#2E75B6','#70AD47','#ED7D31','#FFC000','#7030A0','#C00000']}]},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}}}});
-
-  // Saldo por banco
   const bd={};L.forEach(l=>{if(!bd[l.banco])bd[l.banco]=0;if(l.tipo==='Receita')bd[l.banco]+=l.valor;if(l.tipo==='Despesa')bd[l.banco]-=l.valor;});
   CH['c4']=new Chart(document.getElementById('c4'),{type:'bar',data:{labels:Object.keys(bd),datasets:[{label:'Saldo',data:Object.values(bd),backgroundColor:Object.values(bd).map(v=>v>=0?'#70AD47':'#C00000')}]},options:{responsive:true,plugins:{legend:{display:false}}}});
-
-  // Fluxo diário
   const dd={};L.sort((a,b)=>a.data.localeCompare(b.data)).forEach(l=>{if(!dd[l.data])dd[l.data]=0;if(l.tipo==='Receita')dd[l.data]+=l.valor;if(l.tipo==='Despesa')dd[l.data]-=l.valor;});
   const dias=Object.keys(dd).sort();let ac=0;const acd=dias.map(d=>{ac+=dd[d];return ac;});
   CH['c5']=new Chart(document.getElementById('c5'),{type:'line',data:{labels:dias.map(d=>fd(d)),datasets:[{label:'Fluxo diário',data:dias.map(d=>dd[d]),type:'bar',backgroundColor:dias.map(d=>dd[d]>=0?'rgba(112,173,71,.6)':'rgba(192,0,0,.6)')},{label:'Acumulado',data:acd,type:'line',borderColor:'#2E75B6',backgroundColor:'transparent',tension:.3,pointRadius:2}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
@@ -814,6 +836,7 @@ function dash(){
 // FECHAMENTO MENSAL
 // ═══════════════════════════════════════════════
 function mensal(){
+  if(!isAdmin) return;
   const m=parseInt(document.getElementById('mm').value), a=parseInt(document.getElementById('ma').value);
   const L=LL.filter(l=>{const d=new Date(l.data+'T12:00:00');return d.getMonth()+1===m&&d.getFullYear()===a;});
   const o=document.getElementById('mo');
@@ -838,6 +861,7 @@ function mensal(){
 // FECHAMENTO ANUAL
 // ═══════════════════════════════════════════════
 function anual(){
+  if(!isAdmin) return;
   const a=parseInt(document.getElementById('aa').value);
   const L=LL.filter(l=>new Date(l.data+'T12:00:00').getFullYear()===a);
   const o=document.getElementById('ao');
@@ -859,6 +883,7 @@ function anual(){
 // POR ENTIDADE
 // ═══════════════════════════════════════════════
 function porEnt(){
+  if(!isAdmin) return;
   const e=document.getElementById('pe').value, a=document.getElementById('pa').value;
   let L=LL.filter(l=>l.entidadeId===e);
   if(a) L=L.filter(l=>new Date(l.data+'T12:00:00').getFullYear()===parseInt(a));
@@ -874,6 +899,39 @@ function porEnt(){
     const s=l.tipo==='Receita'?'+':l.tipo==='Despesa'?'-':'';
     const c=l.tipo==='Receita'?'color:#2e7d32':l.tipo==='Despesa'?'color:#c62828':'';
     h+=`<tr><td>${fd(l.data)}</td><td>${l.tipo}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}</td><td style="font-weight:600;${c}">${s} ${fr(l.valor)}</td><td>${l.status}</td></tr>`;
+  });
+  h+=`</tbody></table></div></div>`;o.innerHTML=h;
+}
+
+// ═══════════════════════════════════════════════
+// POR IMÓVEL
+// ═══════════════════════════════════════════════
+function porImovel(){
+  if(!isAdmin) return;
+  const im=document.getElementById('pim').value;
+  const a=document.getElementById('pima').value;
+  const o=document.getElementById('pio');
+  if(!im){o.innerHTML='<div class="emp"><div class="ei">🏠</div><p>Selecione um imóvel.</p></div>';return;}
+  let L=LL.filter(l=>l.imovel===im);
+  if(a) L=L.filter(l=>new Date(l.data+'T12:00:00').getFullYear()===parseInt(a));
+  if(!L.length){o.innerHTML='<div class="emp"><div class="ei">🏠</div><p>Nenhum lançamento para este imóvel.</p></div>';return;}
+  const r=L.filter(l=>l.tipo==='Receita').reduce((s,l)=>s+l.valor,0);
+  const d=L.filter(l=>l.tipo==='Despesa').reduce((s,l)=>s+l.valor,0);
+  const imD=IM[im];
+  const imL=imD?`${im} – ${imD.desc}`:im;
+  let h=`<div class="st"><span>🏠</span>${imL} ${a?'– '+a:''}</div>
+  <div class="cg">
+    <div class="card G"><div class="cl">Receitas</div><div class="cv">${fr(r)}</div><div class="cs">${L.filter(l=>l.tipo==='Receita').length} lançamentos</div></div>
+    <div class="card R"><div class="cl">Despesas</div><div class="cv">${fr(d)}</div><div class="cs">${L.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
+    <div class="card ${r-d>=0?'B':'R'}"><div class="cl">Resultado</div><div class="cv">${fr(r-d)}</div></div>
+    ${imD&&imD.aluguel>0?`<div class="card Y"><div class="cl">Aluguel Mensal</div><div class="cv">${fr(imD.aluguel)}</div><div class="cs">${imD.prop}</div></div>`:''}
+  </div>
+  <div class="card"><div class="tw"><table>
+    <thead><tr><th>Data</th><th>Tipo</th><th>Entidade</th><th>Banco</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead><tbody>`;
+  L.sort((a,b)=>b.data.localeCompare(a.data)).forEach(l=>{
+    const s=l.tipo==='Receita'?'+':l.tipo==='Despesa'?'-':'';
+    const c=l.tipo==='Receita'?'color:#2e7d32':l.tipo==='Despesa'?'color:#c62828':'';
+    h+=`<tr><td>${fd(l.data)}</td><td>${l.tipo}</td><td>${l.entidade}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}</td><td style="font-weight:600;${c}">${s} ${fr(l.valor)}</td><td>${l.status}</td></tr>`;
   });
   h+=`</tbody></table></div></div>`;o.innerHTML=h;
 }
@@ -957,52 +1015,6 @@ function ctTable(){
 // ═══════════════════════════════════════════════
 // UTILITÁRIOS
 // ═══════════════════════════════════════════════
-// ═══════════════════════════════════════════════
-// POR IMOVEL
-// ═══════════════════════════════════════════════
-function porImovel(){
-  const im=document.getElementById('pim-sel').value;
-  const a=document.getElementById('pim-ano').value;
-  const o=document.getElementById('pim-out');
-  if(!im){o.innerHTML='<div class="emp"><div class="ei">🏠</div><p>Selecione um imóvel.</p></div>';return;}
-  let L=LL.filter(l=>l.imovel===im);
-  if(a) L=L.filter(l=>new Date(l.data+'T12:00:00').getFullYear()===parseInt(a));
-  if(!L.length){o.innerHTML='<div class="emp"><div class="ei">🏠</div><p>Nenhum lançamento para este imóvel.</p></div>';return;}
-  const r=L.filter(l=>l.tipo==='Receita').reduce((s,l)=>s+l.valor,0);
-  const d=L.filter(l=>l.tipo==='Despesa').reduce((s,l)=>s+l.valor,0);
-  const imDados=IM[im];
-  const imLabel=imDados?`${im} – ${imDados.desc}`:im;
-  let h=`<div class="st"><span>🏠</span>${imLabel} ${a?'– '+a:''}</div>
-  <div class="cg">
-    <div class="card G"><div class="cl">Receitas</div><div class="cv">${fr(r)}</div><div class="cs">${L.filter(l=>l.tipo==='Receita').length} lançamentos</div></div>
-    <div class="card R"><div class="cl">Despesas</div><div class="cv">${fr(d)}</div><div class="cs">${L.filter(l=>l.tipo==='Despesa').length} lançamentos</div></div>
-    <div class="card ${r-d>=0?'B':'R'}"><div class="cl">Resultado</div><div class="cv">${fr(r-d)}</div></div>
-    ${imDados&&imDados.aluguel>0?`<div class="card Y"><div class="cl">Aluguel Mensal</div><div class="cv">${fr(imDados.aluguel)}</div><div class="cs">${imDados.prop}</div></div>`:''}
-  </div>
-  <div class="card"><div class="tw"><table>
-    <thead><tr><th>Data</th><th>Tipo</th><th>Entidade</th><th>Banco</th><th>Categoria</th><th>Descrição</th><th>Valor</th><th>Status</th></tr></thead>
-    <tbody>`;
-  L.sort((a,b)=>b.data.localeCompare(a.data)).forEach(l=>{
-    const s=l.tipo==='Receita'?'+':l.tipo==='Despesa'?'-':'';
-    const col=l.tipo==='Receita'?'color:#2e7d32':l.tipo==='Despesa'?'color:#c62828':'';
-    h+=`<tr><td>${fd(l.data)}</td><td>${l.tipo}</td><td>${l.entidade}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}</td><td style="font-weight:600;${col}">${s} ${fr(l.valor)}</td><td>${l.status}</td></tr>`;
-  });
-  h+=`</tbody></table></div></div>`;
-  o.innerHTML=h;
-}
-
-// Popular select de imoveis na pagina por-imovel
-function popPimSel(){
-  const s=document.getElementById('pim-sel');
-  if(!s)return;
-  s.innerHTML='<option value="">Selecione...</option>';
-  const ks=Object.keys(IM).sort((a,b)=>parseInt(a.replace('im',''))-parseInt(b.replace('im','')));
-  ks.forEach(k=>{const im=IM[k];const o=document.createElement('option');o.value=k;o.textContent=im?`${k} – ${im.desc}`:k;s.appendChild(o);});
-  // Adicionar imoveis sem cadastro que aparecem em lancamentos
-  const usados=new Set(LL.map(l=>l.imovel).filter(x=>x&&!IM[x]));
-  usados.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;s.appendChild(o);});
-}
-
 function fr(v){return(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
 function fd(d){if(!d)return'';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;}
 function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}">${m}</div>`;}
