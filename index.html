@@ -266,19 +266,28 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <!-- MENSAL (admin only) -->
 <div class="pg" id="pg-mensal">
 <div class="flt">
-<div class="fg"><label>Mês</label>
-<select id="mm">
-<option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
-<option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
-<option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
-<option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
-</select></div>
-<div class="fg"><label>Ano</label>
-<select id="ma">
-<option value="2023">2023</option><option value="2024">2024</option>
-<option value="2025">2025</option><option value="2026">2026</option>
-</select></div>
-<button class="btn bp bsm" onclick="mensal()" style="align-self:flex-end">📊 Gerar</button>
+  <div class="fg"><label>Mês</label>
+    <select id="mm">
+      <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+      <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+      <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+      <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+    </select></div>
+  <div class="fg"><label>Ano</label>
+    <select id="ma">
+      <option value="2023">2023</option><option value="2024">2024</option>
+      <option value="2025">2025</option><option value="2026">2026</option>
+    </select></div>
+  <div class="fg"><label>Entidade</label>
+    <select id="me">
+      <option value="">Todas</option>
+      <option value="goes">Goes (Pessoal)</option><option value="celia">Célia (Pessoal)</option>
+      <option value="acgoes">ACGOES</option><option value="mmp">Muito Mais Peixe</option>
+      <option value="eva">EVA</option><option value="sempra">SEMPRA (Holding)</option>
+    </select></div>
+  <div class="fg"><label>Imóvel</label>
+    <select id="mim"><option value="">Todos</option></select></div>
+  <button class="btn bp bsm" onclick="mensal()" style="align-self:flex-end">📊 Gerar</button>
 </div>
 <div id="mo"></div>
 </div>
@@ -671,6 +680,18 @@ function popIm(){
 }
 
 function popPim(){
+  // Popular select imovel na pagina mensal tambem
+  const sm=document.getElementById('mim');
+  if(sm){
+    const vAtual=sm.value;
+    sm.innerHTML='<option value="">Todos</option>';
+    const ksm=Object.keys(IM).sort((a,b)=>parseInt(a.replace('im',''))-parseInt(b.replace('im','')));
+    ksm.forEach(k=>{
+      const im=IM[k];const o=document.createElement('option');
+      o.value=k;o.textContent=im?`${k} – ${im.desc}`:k;sm.appendChild(o);
+    });
+    if(vAtual) sm.value=vAtual;
+  }
   const s=document.getElementById('pim');if(!s)return;
   s.innerHTML='<option value="">Selecione...</option>';
   const ks=Object.keys(IM).sort((a,b)=>parseInt(a.replace('im',''))-parseInt(b.replace('im','')));
@@ -841,22 +862,57 @@ function dash(){
 // ═══════════════════════════════════════════════
 function mensal(){
   if(!isAdmin) return;
-  const m=parseInt(document.getElementById('mm').value), a=parseInt(document.getElementById('ma').value);
-  const L=LL.filter(l=>{const d=new Date(l.data+'T12:00:00');return d.getMonth()+1===m&&d.getFullYear()===a;});
+  const m=parseInt(document.getElementById('mm').value);
+  const a=parseInt(document.getElementById('ma').value);
+  const en=document.getElementById('me')?.value||'';
+  const im=document.getElementById('mim')?.value||'';
+  let L=LL.filter(l=>{
+    const d=new Date(l.data+'T12:00:00');
+    return d.getMonth()+1===m && d.getFullYear()===a;
+  });
+  if(en) L=L.filter(l=>l.entidadeId===en);
+  if(im) L=L.filter(l=>l.imovel===im);
   const o=document.getElementById('mo');
   if(!L.length){o.innerHTML='<div class="emp"><div class="ei">📅</div><p>Nenhum lançamento neste período.</p></div>';return;}
   const r=L.filter(l=>l.tipo==='Receita').reduce((s,l)=>s+l.valor,0);
   const d=L.filter(l=>l.tipo==='Despesa').reduce((s,l)=>s+l.valor,0);
+  // Titulo com filtros aplicados
+  const filtroLabel=(en?` – ${ENT.find(x=>x.id===en)?.n||en}`:'')
+                   +(im?` – ${IM[im]?im+' – '+IM[im].desc:im}`:'')
   const pe={};ENT.forEach(e=>{pe[e.n]={r:0,d:0};});
-  L.forEach(l=>{if(!pe[l.entidade])pe[l.entidade]={r:0,d:0};if(l.tipo==='Receita')pe[l.entidade].r+=l.valor;if(l.tipo==='Despesa')pe[l.entidade].d+=l.valor;});
-  let h=`<div class="st"><span>📅</span>${MES[m-1]} / ${a}</div>
-  <div class="cg"><div class="card G"><div class="cl">Receitas</div><div class="cv">${fr(r)}</div></div><div class="card R"><div class="cl">Despesas</div><div class="cv">${fr(d)}</div></div><div class="card ${r-d>=0?'B':'R'}"><div class="cl">Resultado</div><div class="cv">${fr(r-d)}</div></div></div>
-  <div class="card" style="margin-bottom:14px"><div class="st" style="margin-bottom:8px"><span>👤</span>Por Entidade</div><div class="tw"><table><thead><tr><th>Entidade</th><th>Receitas</th><th>Despesas</th><th>Resultado</th></tr></thead><tbody>`;
-  Object.entries(pe).filter(([,v])=>v.r>0||v.d>0).forEach(([n,v])=>{const x=v.r-v.d;h+=`<tr><td>${n}</td><td style="color:#2e7d32">${fr(v.r)}</td><td style="color:#c62828">${fr(v.d)}</td><td style="font-weight:600;color:${x>=0?'#2e7d32':'#c62828'}">${fr(x)}</td></tr>`;});
-  h+=`</tbody></table></div></div>`;
-  const pc={};L.forEach(l=>{const k=`${l.tipo} – ${l.categoria}`;pc[k]=(pc[k]||0)+l.valor;});
+  L.forEach(l=>{
+    if(!pe[l.entidade])pe[l.entidade]={r:0,d:0};
+    if(l.tipo==='Receita')pe[l.entidade].r+=l.valor;
+    if(l.tipo==='Despesa')pe[l.entidade].d+=l.valor;
+  });
+  let h=`<div class="st"><span>📅</span>${MES[m-1]} / ${a}${filtroLabel}</div>
+  <div class="cg">
+    <div class="card G"><div class="cl">Receitas</div><div class="cv">${fr(r)}</div></div>
+    <div class="card R"><div class="cl">Despesas</div><div class="cv">${fr(d)}</div></div>
+    <div class="card ${r-d>=0?'B':'R'}"><div class="cl">Resultado</div><div class="cv">${fr(r-d)}</div></div>
+  </div>`;
+  // Por entidade (apenas se nao filtrado por entidade)
+  if(!en){
+    h+=`<div class="card" style="margin-bottom:14px"><div class="st" style="margin-bottom:8px"><span>👤</span>Por Entidade</div><div class="tw"><table><thead><tr><th>Entidade</th><th>Receitas</th><th>Despesas</th><th>Resultado</th></tr></thead><tbody>`;
+    Object.entries(pe).filter(([,v])=>v.r>0||v.d>0).forEach(([n,v])=>{
+      const x=v.r-v.d;
+      h+=`<tr><td>${n}</td><td style="color:#2e7d32">${fr(v.r)}</td><td style="color:#c62828">${fr(v.d)}</td><td style="font-weight:600;color:${x>=0?'#2e7d32':'#c62828'}">${fr(x)}</td></tr>`;
+    });
+    h+=`</tbody></table></div></div>`;
+  }
+  // Por categoria
+  const pc={};
+  L.forEach(l=>{const k=`${l.tipo} – ${l.categoria}`;pc[k]=(pc[k]||0)+l.valor;});
   h+=`<div class="card"><div class="st" style="margin-bottom:8px"><span>🏷️</span>Por Categoria</div><div class="tw"><table><thead><tr><th>Tipo / Categoria</th><th>Total</th></tr></thead><tbody>`;
   Object.entries(pc).sort().forEach(([k,v])=>{h+=`<tr><td>${k}</td><td>${fr(v)}</td></tr>`;});
+  h+=`</tbody></table></div></div>`;
+  // Lancamentos detalhados
+  h+=`<div class="card" style="margin-top:14px"><div class="st" style="margin-bottom:8px"><span>📋</span>Lançamentos</div><div class="tw"><table><thead><tr><th>Data</th><th>Tipo</th><th>Entidade</th><th>Banco</th><th>Categoria</th><th>Descrição</th><th>Imóvel</th><th>Valor</th></tr></thead><tbody>`;
+  L.sort((a,b)=>b.data.localeCompare(a.data)).forEach(l=>{
+    const s=l.tipo==='Receita'?'+':l.tipo==='Despesa'?'-':'';
+    const col=l.tipo==='Receita'?'color:#2e7d32':l.tipo==='Despesa'?'color:#c62828':'';
+    h+=`<tr><td>${fd(l.data)}</td><td>${l.tipo}</td><td>${l.entidade}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}</td><td>${l.imovel||''}</td><td style="font-weight:600;${col}">${s} ${fr(l.valor)}</td></tr>`;
+  });
   h+=`</tbody></table></div></div>`;
   o.innerHTML=h;
 }
@@ -984,8 +1040,14 @@ function bkTable(){
   const w=document.getElementById('bt2');
   let h=`<table><thead><tr><th>Entidade</th><th>Banco / Conta</th><th></th></tr></thead><tbody>`;
   let t=0;
-  ENT.forEach(e=>{(BK[e.id]||BK0[e.id]||[]).forEach(b=>{t++;h+=`<tr><td>${e.n}</td><td>${b}</td><td><button class="btn bd2 bsm" onclick="delBk('${e.id}','${b}')">🗑️</button></td></tr>`;});});
-  if(!t){w.innerHTML='<div class="emp"><div class="ei">🏦</div><p>Nenhum banco.</p></div>';return;}
+  ENT.forEach(e=>{
+    const lista=[...(BK[e.id]||BK0[e.id]||[])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    lista.forEach(b=>{
+      t++;
+      h+=`<tr><td>${e.n}</td><td>${b}</td><td><button class="btn bd2 bsm" onclick="delBk('${e.id}','${b}')">&#128465;</button></td></tr>`;
+    });
+  });
+  if(!t){w.innerHTML='<div class="emp"><div class="ei">&#127974;</div><p>Nenhum banco.</p></div>';return;}
   h+=`</tbody></table>`;w.innerHTML=h;
 }
 
@@ -1012,7 +1074,12 @@ function ctTable(){
   const w=document.getElementById('ctt2');
   const BC={Receita:'br',Despesa:'bd',Transferência:'bt',Investimento:'bi','Repasse ao Cliente':'bp2'};
   let h=`<table><thead><tr><th>Tipo</th><th>Categoria</th><th></th></tr></thead><tbody>`;
-  Object.entries(CT).forEach(([t,l])=>{l.forEach(c=>{h+=`<tr><td><span class="bx ${BC[t]||'br'}">${t}</span></td><td>${c}</td><td><button class="btn bd2 bsm" onclick="delCt('${t}','${c}')">🗑️</button></td></tr>`;});});
+  Object.entries(CT).forEach(([t,l])=>{
+    const lOrdenada=[...l].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    lOrdenada.forEach(cat=>{
+      h+=`<tr><td><span class="bx ${BC[t]||'br'}">${t}</span></td><td>${cat}</td><td><button class="btn bd2 bsm" onclick="delCt('${t}','${cat}')">&#128465;</button></td></tr>`;
+    });
+  });
   h+=`</tbody></table>`;w.innerHTML=h;
 }
 
