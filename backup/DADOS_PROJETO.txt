@@ -92,7 +92,7 @@
     - Recebe alertas por e-mail
 
   OUTROS USUÁRIOS:
-    - Novo Lançamento
+    - Contas Pagas
     - Contas a Pagar
     - Cadastros (Imóveis, Bancos, Categorias)
 
@@ -151,5 +151,5 @@
 
     {{msg_pagamento}}
 
-    Gestão Financeira – Goes & Célia
+    Gestão Financeira – Goes-tech
 ═══════════════════════════════════════════════════════════════
