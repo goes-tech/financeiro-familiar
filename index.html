@@ -9,6 +9,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
 <style>
 :root{--p:#1F3864;--pl:#2E75B6;--g:#70AD47;--r:#C00000;--w:#FFC000;--bg:#F4F6FB;--card:#fff;--bd:#D9E1F2;--tx:#1a1a2e;--mu:#6c757d;--sw:240px;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -104,7 +106,9 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 .emp .ei{font-size:40px;margin-bottom:8px;}
 .tr2 td{font-weight:700;background:#eef3ff!important;}
 /* MODAL */
-#mconf,#mcat{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+#mconf,#mcat,#modal-conta,#modal-pagar{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+#mconf.show,#mcat.show,#modal-conta.show,#modal-pagar.show{display:flex;}
+#mconf,#mcat{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
 #mconf.show,#mcat.show{display:flex;}
 #mconf.show{display:flex;}
 .mbox{background:#fff;border-radius:14px;padding:28px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);}
@@ -113,6 +117,23 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 .mrow .ml{color:var(--mu);font-size:11px;text-transform:uppercase;}
 .mrow .mv{font-weight:600;}.mrow .mv.G{color:#2e7d32;}.mrow .mv.R{color:#c62828;}
 .mbtns{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
+.venc-hoje{background:#fff3cd!important;border-left:4px solid #ffc107;}
+.venc-atrasado{background:#ffebee!important;border-left:4px solid #c00000;}
+.venc-ok{background:#e8f5e9!important;border-left:4px solid #70ad47;}
+.status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;}
+.sb-pend{background:#fff3cd;color:#856404;}
+.sb-pago{background:#e8f5e9;color:#2e7d32;}
+.sb-venc{background:#ffebee;color:#c62828;}
+.sb-canc{background:#f5f5f5;color:#666;}
+/* CAMERA MODAL */
+#cam-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center;flex-direction:column;}
+#cam-modal.show{display:flex;}
+#cam-viewport{width:320px;height:240px;position:relative;overflow:hidden;border-radius:12px;border:3px solid var(--w);}
+#cam-viewport video{width:100%;height:100%;object-fit:cover;}
+#cam-viewport canvas{display:none;}
+.cam-line{position:absolute;top:50%;left:0;width:100%;height:2px;background:rgba(255,200,0,.8);animation:scan 2s linear infinite;}
+@keyframes scan{0%{top:20%;}100%{top:80%;}}
+#cam-result{color:#fff;margin-top:14px;font-size:13px;text-align:center;max-width:320px;}
 @media(max-width:768px){:root{--sw:0px;}#sb{transform:translateX(-240px);width:240px;transition:transform .3s;}#sb.aberto{transform:translateX(0);}#overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:99;}#overlay.show{display:block;}.chg{grid-template-columns:1fr;}.fg2{grid-template-columns:1fr;}#btn-menu{display:flex;}}@media(min-width:769px){#btn-menu{display:none;}#overlay{display:none!important;}}
 </style>
 </head>
@@ -123,7 +144,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div class="ico">💼</div>
 <h1>Gestão Financeira Familiar</h1>
 <p class="sub">Goes &amp; Célia</p>
-<span class="vb">v3.0</span>
+<span class="vb">v3.2</span>
 <div class="lf"><label>E-mail</label>
 <input id="ie" onkeydown="if(event.key==='Enter')login()" placeholder="seu@email.com" type="email"/></div>
 <div class="lf"><label>Senha</label>
@@ -134,13 +155,13 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <button class="btn-in" id="btn-in" onclick="login()">🔐 Entrar</button>
 <div id="lmsg"></div>
 <button class="btn-fgt" onclick="reset()">Esqueci minha senha</button>
-<div class="lfoot">🔒 Firebase Authentication · v3.0</div>
+<div class="lfoot">🔒 Firebase Authentication · v3.2</div>
 </div>
 </div>
 <!-- APP (completamente oculto até login) -->
 <div id="as">
 <nav id="sb">
-<div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes &amp; Célia · v3.0</p></div>
+<div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes &amp; Célia · v3.2</p></div>
 <nav id="sb-nav">
 <!-- Menu montado dinamicamente pelo JS após login -->
 </nav>
@@ -179,7 +200,8 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <option value="eva">EVA</option><option value="sempra">SEMPRA (Holding)</option>
 </select></div>
 </div>
-<div class="cg" id="dc"><div class="emp"><div class="ei">⏳</div><p>Carregando...</p></div></div>
+<div id="dash-alerta-cp"></div>
+        <div class="cg" id="dc"><div class="emp"><div class="ei">⏳</div><p>Carregando...</p></div></div>
 <div class="chg">
 <div class="cc"><h3>📈 Receitas vs Despesas</h3><canvas id="c1"></canvas></div>
 <div class="cc"><h3>🏷️ Despesas por Categoria</h3><canvas id="c2"></canvas></div>
@@ -336,7 +358,32 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </div>
 <div id="pio"></div>
 </div>
-<!-- IMÓVEIS (todos) -->
+<!-- CONTAS A PAGAR (todos) -->
+      <div class="pg" id="pg-contas-pagar">
+        <div class="flt" style="align-items:flex-end;flex-wrap:wrap;gap:10px">
+          <div class="fg"><label>Status</label>
+            <select id="cp-status" onchange="contasTable()">
+              <option value="">Todos</option>
+              <option value="Pendente" selected>Pendente</option>
+              <option value="Pago">Pago</option>
+              <option value="Vencido">Vencido</option>
+              <option value="Cancelado">Cancelado</option>
+            </select></div>
+          <div class="fg"><label>Entidade</label>
+            <select id="cp-ent" onchange="contasTable()">
+              <option value="">Todas</option>
+              <option value="goes">Goes (Pessoal)</option><option value="celia">Célia (Pessoal)</option>
+              <option value="acgoes">ACGOES</option><option value="mmp">Muito Mais Peixe</option>
+              <option value="eva">EVA</option><option value="sempra">SEMPRA (Holding)</option>
+            </select></div>
+          <button class="btn bp bsm" onclick="abrirNovaContaModal()" style="align-self:flex-end">➕ Nova Conta</button>
+          <button class="btn bw bsm" onclick="abrirCameraModal()" style="align-self:flex-end">📷 Ler Boleto</button>
+        </div>
+        <div id="cp-alertas" style="margin-bottom:12px"></div>
+        <div class="card"><div class="tw" id="cp-table"></div></div>
+      </div>
+
+      <!-- IMÓVEIS (todos) -->
 <div class="pg" id="pg-imoveis">
 <div class="st"><span>🏠</span> Imóveis</div>
 <div class="fc" style="margin-bottom:18px">
@@ -476,6 +523,7 @@ const MENU_ADMIN = `
   <div class="lbl">Principal</div>
   <a href="#" onclick="ir('dashboard',this)">📊 Dashboard</a>
   <a href="#" onclick="ir('lancamento',this)">➕ Novo Lançamento</a>
+  <a href="#" onclick="ir('contas-pagar',this)">📋 Contas a Pagar</a>
   <a href="#" onclick="ir('extrato',this)">📋 Extrato</a>
   <div class="lbl">Relatórios</div>
   <a href="#" onclick="ir('mensal',this)">📅 Fechamento Mensal</a>
@@ -490,6 +538,7 @@ const MENU_ADMIN = `
 const MENU_USER = `
   <div class="lbl">Lançamentos</div>
   <a href="#" onclick="ir('lancamento',this)">➕ Novo Lançamento</a>
+  <a href="#" onclick="ir('contas-pagar',this)">📋 Contas a Pagar</a>
   <div class="lbl">Cadastros</div>
   <a href="#" onclick="ir('imoveis',this)">🏠 Imóveis</a>
   <a href="#" onclick="ir('bancos',this)">🏦 Bancos / Contas</a>
@@ -569,6 +618,8 @@ function abrir(email){
   } else {
     ir('lancamento', null);
   }
+  // Verificar alertas diários
+  setTimeout(()=>verificarAlertasDiarios(), 3000);
 }
 
 // ═══════════════════════════════════════════════
@@ -609,6 +660,7 @@ function iniciar(){
     if(pg()==='bancos') bkTable();
   }));
 
+  iniciarListenerCP();
   popDest();popOutra();popIm();popPim();
 }
 
@@ -621,7 +673,7 @@ function pg(){const p=document.querySelector('.pg.on');return p?p.id.replace('pg
 // ═══════════════════════════════════════════════
 const TT={dashboard:'Dashboard',lancamento:'Novo Lançamento',extrato:'Extrato',
   mensal:'Fechamento Mensal',anual:'Fechamento Anual','por-entidade':'Por Entidade',
-  'por-imovel':'Por Imóvel',imoveis:'Imóveis',bancos:'Bancos / Contas',categorias:'Categorias'};
+  'por-imovel':'Por Imóvel','contas-pagar':'Contas a Pagar',imoveis:'Imóveis',bancos:'Bancos / Contas',categorias:'Categorias'};
 
 function ir(id,el){
   fecharMenu();
@@ -637,6 +689,7 @@ function ir(id,el){
   if(id==='por-entidade') porEnt();
   if(id==='por-imovel')   porImovel();
   if(id==='imoveis')      imTable();
+  if(id==='contas-pagar') contasTable();
   if(id==='bancos')       bkTable();
   if(id==='categorias')   ctTable();
 }
@@ -1107,7 +1160,481 @@ function fecharMenu(){
   document.getElementById('overlay').classList.remove('show');
 }
 // ═══════════════════════════════════════════════
+// EMAILJS CONFIG
+// ═══════════════════════════════════════════════
+const EJS_SVC  = 'service_9yh7v6q';
+const EJS_TPL  = 'template_63e3ych';
+const EJS_KEY  = 'VFPpvidrWSENzhQuy';
+emailjs.init(EJS_KEY);
+
+// ═══════════════════════════════════════════════
+// CONTAS A PAGAR - ESTADO
+// ═══════════════════════════════════════════════
+let CP = [];       // lista de contas a pagar
+let _cpEdit = null; // conta sendo editada
+let _cpPagar = null; // conta sendo paga
+
+// Listener contas a pagar
+function iniciarListenerCP(){
+  US.push(db.collection('contas_pagar').orderBy('vencimento','asc').onSnapshot(s=>{
+    CP = s.docs.map(d=>({id:d.id,...d.data()}));
+    // Atualizar status automaticamente
+    const hoje = new Date().toISOString().split('T')[0];
+    CP.forEach(async cp=>{
+      if(cp.status==='Pendente' && cp.vencimento < hoje){
+        await db.collection('contas_pagar').doc(cp.id).update({status:'Vencido'});
+      }
+    });
+    if(pg()==='contas-pagar') contasTable();
+    atualizarAlertasDash();
+  }));
+}
+
+// ═══════════════════════════════════════════════
+// CONTAS A PAGAR - TABELA
+// ═══════════════════════════════════════════════
+function contasTable(){
+  const w = document.getElementById('cp-table');
+  const st = document.getElementById('cp-status')?.value||'';
+  const en = document.getElementById('cp-ent')?.value||'';
+  const hoje = new Date().toISOString().split('T')[0];
+
+  let L = [...CP];
+  if(st) L = L.filter(c=>c.status===st);
+  if(en) L = L.filter(c=>c.entidadeId===en);
+
+  // Alertas do dia
+  const alertDiv = document.getElementById('cp-alertas');
+  if(alertDiv){
+    const hoje_contas = CP.filter(c=>c.vencimento===hoje && c.status==='Pendente');
+    const vencidas = CP.filter(c=>c.vencimento<hoje && c.status==='Pendente');
+    let alertHtml = '';
+    if(hoje_contas.length) alertHtml += `<div class="al" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;margin-bottom:6px">⚠️ <strong>${hoje_contas.length} conta(s) vencem hoje!</strong> ${hoje_contas.map(c=>c.fornecedor).join(', ')}</div>`;
+    if(vencidas.length) alertHtml += `<div class="al er">🔴 <strong>${vencidas.length} conta(s) vencida(s)!</strong> ${vencidas.map(c=>c.fornecedor+' ('+fd(c.vencimento)+')').join(', ')}</div>`;
+    alertDiv.innerHTML = alertHtml;
+  }
+
+  if(!L.length){
+    w.innerHTML='<div class="emp"><div class="ei">📋</div><p>Nenhuma conta encontrada.</p></div>';
+    return;
+  }
+
+  const sbClass = {Pendente:'sb-pend',Pago:'sb-pago',Vencido:'sb-venc',Cancelado:'sb-canc'};
+  const rowClass = c=>{
+    if(c.status==='Pago'||c.status==='Cancelado') return '';
+    if(c.vencimento < hoje) return 'venc-atrasado';
+    if(c.vencimento === hoje) return 'venc-hoje';
+    return '';
+  };
+
+  let h = `<table><thead><tr>
+    <th>Vencimento</th><th>Fornecedor</th><th>Entidade</th><th>Banco</th>
+    <th>Categoria</th><th>Valor</th><th>Recorrência</th><th>Status</th><th>Ações</th>
+  </tr></thead><tbody>`;
+
+  L.forEach(cp=>{
+    const rc = rowClass(cp);
+    h += `<tr class="${rc}">
+      <td>${fd(cp.vencimento)}</td>
+      <td>${cp.fornecedor}</td>
+      <td>${ENT.find(e=>e.id===cp.entidadeId)?.n||cp.entidadeId||''}</td>
+      <td>${cp.banco||''}</td>
+      <td>${cp.categoria||''}</td>
+      <td style="font-weight:600;color:#c62828">${fr(cp.valor)}</td>
+      <td>${cp.recorrencia||'Única'}</td>
+      <td><span class="status-badge ${sbClass[cp.status]||'sb-pend'}">${cp.status}</span></td>
+      <td style="white-space:nowrap">
+        ${cp.status==='Pendente'||cp.status==='Vencido'
+          ? `<button class="btn bp bsm" onclick="abrirPagarModal('${cp.id}')" title="Pagar" style="margin-right:3px">✅</button>`
+          : ''}
+        <button class="btn bw bsm" onclick="editarConta('${cp.id}')" title="Editar" style="margin-right:3px">✏️</button>
+        <button class="btn bd2 bsm" onclick="cancelarConta('${cp.id}')" title="Cancelar">🗑️</button>
+      </td>
+    </tr>`;
+  });
+
+  // Totais
+  const total = L.filter(c=>c.status!=='Cancelado').reduce((s,c)=>s+c.valor,0);
+  const pend  = L.filter(c=>c.status==='Pendente'||c.status==='Vencido').reduce((s,c)=>s+c.valor,0);
+  h += `</tbody><tfoot><tr class="tr2">
+    <td colspan="5" style="text-align:right">TOTAIS:</td>
+    <td colspan="4">
+      <span style="color:#c62828">A pagar: ${fr(pend)}</span> &nbsp;|&nbsp;
+      <span style="color:#2e7d32">Total: ${fr(total)}</span>
+    </td>
+  </tr></tfoot></table>`;
+  w.innerHTML = h;
+}
+
+// ═══════════════════════════════════════════════
+// NOVA CONTA - MODAL
+// ═══════════════════════════════════════════════
+function abrirNovaContaModal(){
+  _cpEdit = null;
+  document.getElementById('mc-titulo').textContent = '📋 Nova Conta a Pagar';
+  document.getElementById('mc-forn').value = '';
+  document.getElementById('mc-valor').value = '';
+  document.getElementById('mc-venc').value = new Date().toISOString().split('T')[0];
+  document.getElementById('mc-ent').value = '';
+  document.getElementById('mc-banco').innerHTML = '<option value="">Selecione a entidade primeiro</option>';
+  document.getElementById('mc-cat').innerHTML = '<option value="">Selecione...</option>';
+  document.getElementById('mc-rec').value = 'unica';
+  document.getElementById('mc-boleto').value = '';
+  document.getElementById('mc-obs').value = '';
+  document.getElementById('modal-conta').classList.add('show');
+  // Popular categorias de despesa
+  const s = document.getElementById('mc-cat');
+  s.innerHTML = '<option value="">Selecione...</option>';
+  const lista = [...(CT['Despesa']||[])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  lista.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;s.appendChild(o);});
+}
+
+function fecharModalConta(){
+  document.getElementById('modal-conta').classList.remove('show');
+  _cpEdit = null;
+}
+
+// Popular banco ao mudar entidade no modal de conta
+document.addEventListener('change', function(e){
+  if(e.target.id==='mc-ent'){
+    const ent = e.target.value;
+    const s = document.getElementById('mc-banco');
+    s.innerHTML = '<option value="">Selecione...</option>';
+    (BK[ent]||BK0[ent]||[]).forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;s.appendChild(o);});
+  }
+});
+
+async function salvarConta(){
+  const forn  = document.getElementById('mc-forn').value.trim();
+  const valor = parseFloat(document.getElementById('mc-valor').value);
+  const venc  = document.getElementById('mc-venc').value;
+  const ent   = document.getElementById('mc-ent').value;
+  const banco = document.getElementById('mc-banco').value;
+  const cat   = document.getElementById('mc-cat').value;
+  if(!forn||!valor||!venc||!ent||!banco||!cat){
+    alert('Preencha todos os campos obrigatórios (*).');return;
+  }
+  const dados = {
+    fornecedor: forn, valor, vencimento: venc,
+    entidadeId: ent, banco, categoria: cat,
+    recorrencia: document.getElementById('mc-rec').value,
+    boleto: document.getElementById('mc-boleto').value.trim(),
+    obs: document.getElementById('mc-obs').value.trim(),
+    status: 'Pendente',
+    criadoEm: new Date().toISOString(),
+    criadoPor: auth.currentUser?.email||'',
+  };
+  try{
+    if(_cpEdit){
+      await db.collection('contas_pagar').doc(_cpEdit).update(dados);
+      alert('Conta atualizada!');
+    } else {
+      await db.collection('contas_pagar').add(dados);
+      // Se recorrente, criar próximas ocorrências
+      if(dados.recorrencia !== 'unica'){
+        await criarRecorrencias(dados);
+      }
+      alert('Conta cadastrada!');
+    }
+    fecharModalConta();
+  }catch(e){alert('Erro: '+e.message);}
+}
+
+async function criarRecorrencias(dados){
+  const meses = {mensal:1,bimestral:2,trimestral:3,semestral:6,anual:12};
+  const inc = meses[dados.recorrencia]||0;
+  if(!inc) return;
+  // Criar 11 ocorrências futuras (total 12 com a atual)
+  let d = new Date(dados.vencimento+'T12:00:00');
+  for(let i=0;i<11;i++){
+    d.setMonth(d.getMonth()+inc);
+    const novaData = d.toISOString().split('T')[0];
+    await db.collection('contas_pagar').add({...dados, vencimento:novaData, criadoEm:new Date().toISOString()});
+  }
+}
+
+function editarConta(id){
+  const cp = CP.find(c=>c.id===id);
+  if(!cp) return;
+  _cpEdit = id;
+  document.getElementById('mc-titulo').textContent = '✏️ Editar Conta';
+  document.getElementById('mc-forn').value  = cp.fornecedor||'';
+  document.getElementById('mc-valor').value = cp.valor||'';
+  document.getElementById('mc-venc').value  = cp.vencimento||'';
+  document.getElementById('mc-ent').value   = cp.entidadeId||'';
+  // Popular banco
+  const sb = document.getElementById('mc-banco');
+  sb.innerHTML = '<option value="">Selecione...</option>';
+  (BK[cp.entidadeId]||BK0[cp.entidadeId]||[]).forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;sb.appendChild(o);});
+  sb.value = cp.banco||'';
+  // Popular categoria
+  const sc = document.getElementById('mc-cat');
+  sc.innerHTML = '<option value="">Selecione...</option>';
+  const lista=[...(CT['Despesa']||[])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  lista.forEach(x=>{const o=document.createElement('option');o.value=x;o.textContent=x;sc.appendChild(o);});
+  sc.value = cp.categoria||'';
+  document.getElementById('mc-rec').value    = cp.recorrencia||'unica';
+  document.getElementById('mc-boleto').value = cp.boleto||'';
+  document.getElementById('mc-obs').value    = cp.obs||'';
+  document.getElementById('modal-conta').classList.add('show');
+}
+
+async function cancelarConta(id){
+  if(!confirm('Cancelar esta conta?')) return;
+  try{await db.collection('contas_pagar').doc(id).update({status:'Cancelado'});}
+  catch(e){alert('Erro: '+e.message);}
+}
+
+// ═══════════════════════════════════════════════
+// PAGAR CONTA
+// ═══════════════════════════════════════════════
+function abrirPagarModal(id){
+  const cp = CP.find(c=>c.id===id);
+  if(!cp) return;
+  _cpPagar = id;
+  document.getElementById('mp-data').value  = new Date().toISOString().split('T')[0];
+  document.getElementById('mp-valor').value = cp.valor;
+  document.getElementById('mp-body').innerHTML = `
+    <div class="mrow"><span class="ml">Fornecedor</span><span class="mv">${cp.fornecedor}</span></div>
+    <div class="mrow"><span class="ml">Vencimento</span><span class="mv">${fd(cp.vencimento)}</span></div>
+    <div class="mrow"><span class="ml">Banco</span><span class="mv">${cp.banco}</span></div>
+    <div class="mrow"><span class="ml">Categoria</span><span class="mv">${cp.categoria}</span></div>
+    <div class="mrow"><span class="ml">Valor Original</span><span class="mv R">${fr(cp.valor)}</span></div>`;
+  document.getElementById('modal-pagar').classList.add('show');
+}
+
+async function confirmarPagamento(){
+  const cp = CP.find(c=>c.id===_cpPagar);
+  if(!cp) return;
+  const dataPag = document.getElementById('mp-data').value;
+  const valorPag = parseFloat(document.getElementById('mp-valor').value);
+  if(!dataPag||!valorPag){alert('Preencha data e valor.');return;}
+  const btn = document.querySelector('#modal-pagar .bp');
+  btn.disabled=true; btn.textContent='⏳ Processando...';
+  try{
+    // 1. Marcar conta como paga
+    await db.collection('contas_pagar').doc(_cpPagar).update({
+      status:'Pago', dataPagamento:dataPag, valorPago:valorPag
+    });
+    // 2. Criar lançamento automático no extrato
+    await db.collection('lancamentos').add({
+      data: dataPag,
+      tipo: 'Despesa',
+      entidade: ENT.find(e=>e.id===cp.entidadeId)?.n||cp.entidadeId,
+      entidadeId: cp.entidadeId,
+      banco: cp.banco,
+      categoria: cp.categoria,
+      valor: valorPag,
+      descricao: `Pgto: ${cp.fornecedor}${cp.boleto?' (Boleto: '+cp.boleto+')':''}`,
+      imovel:'', veiculo:'', destino:'', contaOutra:'',
+      status:'Efetivado',
+      obs: `Gerado automaticamente pelo pagamento de conta a pagar.`,
+      criadoEm: new Date().toISOString(),
+      criadoPor: auth.currentUser?.email||'',
+      contaPagarId: _cpPagar,
+    });
+    // 3. Notificar por email
+    await enviarEmailPagamento(cp, dataPag, valorPag);
+    document.getElementById('modal-pagar').classList.remove('show');
+    alert('✅ Pagamento registrado e lançamento criado no extrato!');
+  }catch(e){alert('Erro: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='✅ Confirmar Pagamento';}
+}
+
+// ═══════════════════════════════════════════════
+// CÂMERA / LEITOR DE CÓDIGO DE BARRAS
+// ═══════════════════════════════════════════════
+let _quaggaAtivo = false;
+
+function abrirCameraModal(){
+  document.getElementById('cam-modal').classList.add('show');
+  document.getElementById('cam-result').textContent = 'Aponte a câmera para o código de barras do boleto...';
+  setTimeout(()=>iniciarCamera(), 300);
+}
+
+function fecharCamera(){
+  pararCamera();
+  document.getElementById('cam-modal').classList.remove('show');
+}
+
+function iniciarCamera(){
+  if(typeof Quagga === 'undefined'){
+    document.getElementById('cam-result').textContent = '❌ Biblioteca de leitura não disponível. Use digitação manual.';
+    return;
+  }
+  Quagga.init({
+    inputStream:{
+      type:'LiveStream',
+      target: document.getElementById('cam-viewport'),
+      constraints:{facingMode:'environment', width:640, height:480}
+    },
+    decoder:{readers:['i2of5_reader','code_128_reader','ean_reader']},
+    locate:true,
+  }, err=>{
+    if(err){
+      document.getElementById('cam-result').textContent = '❌ Não foi possível acessar a câmera. Use digitação manual.';
+      return;
+    }
+    _quaggaAtivo = true;
+    Quagga.start();
+    Quagga.onDetected(resultado=>{
+      const codigo = resultado.codeResult.code;
+      pararCamera();
+      processarCodigoBoleto(codigo);
+    });
+  });
+}
+
+function pararCamera(){
+  if(_quaggaAtivo){
+    try{Quagga.stop();}catch(e){}
+    _quaggaAtivo = false;
+  }
+}
+
+function processarCodigoBoleto(codigo){
+  document.getElementById('cam-modal').classList.remove('show');
+  const res = decodificarBoleto(codigo);
+  if(res.sucesso){
+    abrirNovaContaModal();
+    if(res.valor) document.getElementById('mc-valor').value = res.valor;
+    if(res.vencimento) document.getElementById('mc-venc').value = res.vencimento;
+    if(res.boleto) document.getElementById('mc-boleto').value = res.boleto;
+    let aviso = '✅ Código lido com sucesso!';
+    if(!res.valor) aviso += ' ⚠️ Valor não identificado — preencha manualmente.';
+    if(!res.vencimento) aviso += ' ⚠️ Vencimento não identificado — preencha manualmente.';
+    alert(aviso);
+  } else {
+    alert('⚠️ Não foi possível decodificar o boleto automaticamente.
+Código lido: '+codigo+'
+
+Preencha os dados manualmente.');
+    abrirNovaContaModal();
+    document.getElementById('mc-boleto').value = codigo;
+  }
+}
+
+function decodificarBoleto(codigo){
+  // Boleto bancário brasileiro - código de barras com 44 dígitos
+  const limpo = codigo.replace(/\D/g,'');
+  if(limpo.length < 44) return {sucesso:false};
+  try{
+    let valor = null, vencimento = null;
+    if(limpo.length === 44){
+      // Boleto bancário padrão
+      const vStr = limpo.substring(9,19);
+      const vNum = parseInt(vStr);
+      if(vNum > 0) valor = (vNum/100).toFixed(2);
+      // Vencimento: fator de vencimento (posição 5-8)
+      const fator = parseInt(limpo.substring(5,9));
+      if(fator > 1000){
+        const base = new Date('1997-10-07');
+        base.setDate(base.getDate()+fator);
+        vencimento = base.toISOString().split('T')[0];
+      }
+    }
+    return {sucesso:true, valor, vencimento, boleto:limpo};
+  }catch(e){
+    return {sucesso:false};
+  }
+}
+
+function digitarManual(){
+  fecharCamera();
+  abrirNovaContaModal();
+}
+
+// ═══════════════════════════════════════════════
+// EMAILJS - ALERTAS E NOTIFICAÇÕES
+// ═══════════════════════════════════════════════
+async function enviarEmailAlertasDiarios(){
+  const hoje = new Date().toISOString().split('T')[0];
+  const contasHoje = CP.filter(c=>c.vencimento===hoje && c.status==='Pendente');
+  if(!contasHoje.length) return;
+
+  // Buscar emails dos usuários cadastrados no Firebase Auth
+  // Como não temos acesso direto à lista de usuários no client,
+  // usamos os emails configurados no Firestore (config/usuarios)
+  let emails = [];
+  try{
+    const snap = await db.doc('config/usuarios').get();
+    if(snap.exists) emails = snap.data().emails||[];
+  }catch(e){}
+
+  if(!emails.length){
+    // Fallback: usar email do admin
+    emails = ['goes@antoniocarlosdegoes.com'];
+  }
+
+  const listaContas = contasHoje.map(c=>
+    `• ${c.fornecedor} — ${fr(c.valor)} — Banco: ${c.banco}`
+  ).join('
+');
+
+  for(const email of emails){
+    try{
+      await emailjs.send(EJS_SVC, EJS_TPL, {
+        to_email: email,
+        data: fd(hoje),
+        contas: listaContas,
+        msg_pagamento: '',
+      });
+    }catch(e){console.warn('Erro ao enviar email para '+email+':', e);}
+  }
+}
+
+async function enviarEmailPagamento(cp, dataPag, valorPag){
+  let emails = [];
+  try{
+    const snap = await db.doc('config/usuarios').get();
+    if(snap.exists) emails = snap.data().emails||[];
+  }catch(e){}
+  if(!emails.length) emails = ['goes@antoniocarlosdegoes.com'];
+
+  for(const email of emails){
+    try{
+      await emailjs.send(EJS_SVC, EJS_TPL, {
+        to_email: email,
+        data: fd(dataPag),
+        contas: '',
+        msg_pagamento: `✅ PAGAMENTO REALIZADO:
+• ${cp.fornecedor} — ${fr(valorPag)} — em ${fd(dataPag)}`,
+      });
+    }catch(e){console.warn('Erro ao enviar email:', e);}
+  }
+}
+
+// Verificar alertas diários ao abrir o app (às 7h)
+function verificarAlertasDiarios(){
+  const agora = new Date();
+  const hora = agora.getHours();
+  // Verificar se já enviou hoje
+  const chave = 'alerta_'+agora.toISOString().split('T')[0];
+  if(hora >= 7 && !sessionStorage.getItem(chave)){
+    sessionStorage.setItem(chave,'1');
+    setTimeout(()=>enviarEmailAlertasDiarios(), 2000);
+  }
+}
+
+function atualizarAlertasDash(){
+  // Atualizar badge no dashboard se admin
+  if(!isAdmin) return;
+  const hoje = new Date().toISOString().split('T')[0];
+  const urgentes = CP.filter(c=>(c.vencimento===hoje||c.vencimento<hoje)&&c.status==='Pendente');
+  const el = document.getElementById('dash-alerta-cp');
+  if(el && urgentes.length){
+    el.innerHTML = `<div class="al" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;margin-bottom:14px">
+      ⚠️ <strong>${urgentes.length} conta(s) a pagar urgente(s)!</strong>
+      <a href="#" onclick="ir('contas-pagar',null)" style="margin-left:8px;color:#856404;font-weight:700">Ver contas →</a>
+    </div>`;
+  } else if(el){
+    el.innerHTML='';
+  }
+}
+
+// ═══════════════════════════════════════════════
 // MODAL CATEGORIAS - EDITAR E MIGRAR
+
 // ═══════════════════════════════════════════════
 let _mCatAcao=null, _mCatTipo=null, _mCatNome=null;
 
@@ -1194,6 +1721,84 @@ function fr(v){return(v||0).toLocaleString('pt-BR',{style:'currency',currency:'B
 function fd(d){if(!d)return'';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;}
 function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}">${m}</div>`;}
 </script>
+
+<!-- MODAL NOVA CONTA A PAGAR -->
+<div id="modal-conta">
+  <div class="mbox" style="max-width:600px;max-height:90vh;overflow-y:auto">
+    <h3 id="mc-titulo">📋 Nova Conta a Pagar</h3>
+    <div class="fg2" style="margin-top:12px">
+      <div class="fg full"><label>Fornecedor / Credor *</label>
+        <input type="text" id="mc-forn" placeholder="Ex: Conta de Luz, Aluguel..."></div>
+      <div class="fg"><label>Valor *</label>
+        <input type="number" id="mc-valor" placeholder="0,00" step="0.01" min="0"></div>
+      <div class="fg"><label>Vencimento *</label>
+        <input type="date" id="mc-venc"></div>
+      <div class="fg"><label>Entidade *</label>
+        <select id="mc-ent">
+          <option value="">Selecione...</option>
+          <option value="goes">Goes (Pessoal)</option><option value="celia">Célia (Pessoal)</option>
+          <option value="acgoes">ACGOES</option><option value="mmp">Muito Mais Peixe</option>
+          <option value="eva">EVA</option><option value="sempra">SEMPRA (Holding)</option>
+        </select></div>
+      <div class="fg"><label>Banco / Conta *</label>
+        <select id="mc-banco"><option value="">Selecione a entidade primeiro</option></select></div>
+      <div class="fg"><label>Categoria *</label>
+        <select id="mc-cat"><option value="">Selecione...</option></select></div>
+      <div class="fg"><label>Recorrência</label>
+        <select id="mc-rec">
+          <option value="unica">Única</option>
+          <option value="mensal">Mensal</option>
+          <option value="bimestral">Bimestral</option>
+          <option value="trimestral">Trimestral</option>
+          <option value="semestral">Semestral</option>
+          <option value="anual">Anual</option>
+        </select></div>
+      <div class="fg"><label>Nº Boleto / Documento</label>
+        <input type="text" id="mc-boleto" placeholder="Código ou número do documento"></div>
+      <div class="fg full"><label>Observações</label>
+        <textarea id="mc-obs" rows="2" placeholder="Observações..."></textarea></div>
+    </div>
+    <div class="mbtns">
+      <button class="btn bw" onclick="fecharModalConta()">Cancelar</button>
+      <button class="btn bp" onclick="salvarConta()">💾 Salvar Conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CÂMERA / LEITOR DE BOLETO -->
+<div id="cam-modal">
+  <div style="text-align:center">
+    <h3 style="color:#fff;margin-bottom:14px">📷 Lendo Código de Barras</h3>
+    <div id="cam-viewport">
+      <div class="cam-line"></div>
+    </div>
+    <div id="cam-result">Aponte a câmera para o código de barras do boleto...</div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:center">
+      <button class="btn bw" onclick="fecharCamera()">Cancelar</button>
+      <button class="btn bp" onclick="digitarManual()">✏️ Digitar Manual</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PAGAR CONTA -->
+<div id="modal-pagar">
+  <div class="mbox" style="max-width:460px">
+    <h3>✅ Confirmar Pagamento</h3>
+    <div id="mp-body"></div>
+    <div class="fg" style="margin-top:14px">
+      <label>Data do Pagamento</label>
+      <input type="date" id="mp-data">
+    </div>
+    <div class="fg" style="margin-top:10px">
+      <label>Valor Pago (R$)</label>
+      <input type="number" id="mp-valor" step="0.01" min="0">
+    </div>
+    <div class="mbtns">
+      <button class="btn bw" onclick="document.getElementById('modal-pagar').classList.remove('show')">Cancelar</button>
+      <button class="btn bp" onclick="confirmarPagamento()">✅ Confirmar Pagamento</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL CATEGORIAS (editar/migrar) -->
 <div id="mcat">
