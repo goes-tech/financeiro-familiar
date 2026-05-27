@@ -1,0 +1,155 @@
+═══════════════════════════════════════════════════════════════
+  GESTÃO FINANCEIRA FAMILIAR – GOES & CÉLIA
+  Documentação do Projeto
+  Data: 27/05/2026
+═══════════════════════════════════════════════════════════════
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  VERSÕES SALVAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  index_v2_final.html       → v2.0 estável (base do projeto)
+  index_v3.0_final.html     → v3.0 (controle de acesso, por imóvel, confirmação)
+  index_v3.1_stable.html    → v3.1 ESTÁVEL (categorias/bancos alfabéticos, mensal com filtros)
+  index_v3.2_backup.html    → v3.2 (contas a pagar, leitor boleto, emailjs) ← ATUAL
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PUBLICAÇÃO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  URL do app:     https://goes-tech.github.io/financeiro-familiar/
+  Repositório:    https://github.com/goes-tech/financeiro-familiar
+  Usuário GitHub: goes-tech
+  Branch:         main
+  Arquivo:        index.html
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FIREBASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Console:        https://console.firebase.google.com
+  Projeto:        financeiro-global
+  API Key:        AIzaSyBF86Y3VuXWGLJZaFUzAC74_d4SqeXelGs
+  Auth Domain:    financeiro-global.firebaseapp.com
+  Project ID:     financeiro-global
+  Storage Bucket: financeiro-global.firebasestorage.app
+  Sender ID:      788523727755
+  App ID:         1:788523727755:web:bc2fec9f73c1b5ef344d8e
+
+  Coleções Firestore:
+    lancamentos     → lançamentos financeiros
+    contas_pagar    → contas a pagar
+    imoveis         → cadastro de imóveis (im1 a im45)
+    config/bancos   → bancos customizados por entidade
+    config/categorias → categorias customizadas
+
+  Autenticação:
+    Método: E-mail e senha
+    Admin:  goes@antoniocarlosdegoes.com
+    Domínio autorizado: goes-tech.github.io
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  EMAILJS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Console:     https://dashboard.emailjs.com
+  Service ID:  service_9yh7v6q
+  Template ID: template_63e3ych
+  Public Key:  VFPpvidrWSENzhQuy
+  Destinatário: goes@antoniocarlosdegoes.com (admin only)
+  Alertas: diários às 7h (contas não pagas do dia)
+  Notificação: ao confirmar pagamento de conta
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ENTIDADES CADASTRADAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PESSOAS:
+    Goes (Pessoal)   → Bradesco, Santander, Mercado Pago,
+                       XP Investimentos, CEF, Caixa (Dinheiro)
+    Célia (Pessoal)  → Bradesco, Santander, Caixa (Dinheiro)
+
+  EMPRESAS:
+    ACGOES           → Banco do Brasil, Caixa (Dinheiro)
+    Muito Mais Peixe → Mercado Pago, Caixa (Dinheiro)
+                       (opera restaurante delivery)
+    EVA              → Mercado Pago, Caixa (Dinheiro)
+    SEMPRA (Holding) → Mercado Pago (PJ), Caixa (Dinheiro)
+                       (holding familiar, vários imóveis)
+
+  VEÍCULOS:
+    Corolla  → ACGOES
+    Saveiro  → ACGOES
+    Fox      → ACGOES
+    CBX 250  → Célia (Pessoal)
+
+  IMÓVEIS: im1 a im45 (cadastro individual no app)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CONTROLE DE ACESSO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ADMIN (goes@antoniocarlosdegoes.com):
+    - Dashboard, Extrato, Relatórios (Mensal, Anual)
+    - Por Entidade, Por Imóvel
+    - Contas a Pagar
+    - Cadastros (Imóveis, Bancos, Categorias)
+    - Editar/Renomear/Migrar categorias
+    - Recebe alertas por e-mail
+
+  OUTROS USUÁRIOS:
+    - Novo Lançamento
+    - Contas a Pagar
+    - Cadastros (Imóveis, Bancos, Categorias)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FUNCIONALIDADES v3.2
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✅ Login com e-mail e senha (Firebase Auth)
+  ✅ Dashboard com 5 gráficos (admin only)
+  ✅ Lançamentos: Receita, Despesa, Transferência,
+                  Investimento, Repasse ao Cliente
+  ✅ Extrato com filtros e exportação CSV (admin only)
+  ✅ Fechamento Mensal com filtros entidade/imóvel (admin)
+  ✅ Fechamento Anual (admin only)
+  ✅ Relatório Por Entidade (admin only)
+  ✅ Relatório Por Imóvel (admin only)
+  ✅ Cadastro de Imóveis (im1–im45)
+  ✅ Cadastro de Bancos por entidade
+  ✅ Categorias personalizáveis (ordem alfabética)
+  ✅ Editar/Renomear categoria com migração de lançamentos
+  ✅ Excluir categoria com migração de lançamentos
+  ✅ Confirmação antes de salvar lançamento (modal)
+  ✅ Contas a Pagar com recorrência automática
+  ✅ Pagamento de conta → lançamento automático no extrato
+  ✅ Leitor de código de barras via câmera (ZXing)
+  ✅ Decodificação de boleto bancário (valor + vencimento)
+  ✅ Alertas visuais de vencimento (hoje/vencido)
+  ✅ Alerta no dashboard para contas urgentes
+  ✅ E-mail diário às 7h (contas não pagas, apenas admin)
+  ✅ E-mail de confirmação de pagamento (apenas admin)
+  ✅ Menu hambúrguer para celular
+  ✅ Sincronização em tempo real (Firestore)
+  ✅ Controle de acesso por perfil (admin/usuário)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COMO ATUALIZAR O APP NO GITHUB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. Acesse https://github.com/goes-tech/financeiro-familiar
+  2. Clique em index.html → ícone lápis ✏️
+  3. Selecione tudo (Ctrl+A) e cole o novo conteúdo
+  4. Clique em "Commit changes"
+  OU
+  1. Clique em "Add file" → "Upload files"
+  2. Arraste o novo index.html
+  3. Clique em "Commit changes"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TEMPLATE EMAILJS (configurar em dashboard.emailjs.com)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Subject: 💰 Contas a Pagar – {{data}}
+  To:      {{to_email}}
+  Body:
+    Olá!
+
+    Contas com vencimento hoje ({{data}}):
+    {{contas}}
+
+    {{msg_pagamento}}
+
+    Gestão Financeira – Goes & Célia
+═══════════════════════════════════════════════════════════════
