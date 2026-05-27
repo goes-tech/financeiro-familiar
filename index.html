@@ -4,13 +4,13 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Gestão Financeira – Goes &amp; Célia | v3.0</title>
+<title>Gestão Financeira – Goes &amp; Célia | v3.2</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js" defer></script>
 <style>
 :root{--p:#1F3864;--pl:#2E75B6;--g:#70AD47;--r:#C00000;--w:#FFC000;--bg:#F4F6FB;--card:#fff;--bd:#D9E1F2;--tx:#1a1a2e;--mu:#6c757d;--sw:240px;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1165,7 +1165,7 @@ function fecharMenu(){
 const EJS_SVC  = 'service_9yh7v6q';
 const EJS_TPL  = 'template_63e3ych';
 const EJS_KEY  = 'VFPpvidrWSENzhQuy';
-emailjs.init(EJS_KEY);
+if(typeof emailjs !== 'undefined') emailjs.init(EJS_KEY);
 
 // ═══════════════════════════════════════════════
 // CONTAS A PAGAR - ESTADO
@@ -1459,7 +1459,9 @@ function fecharCamera(){
 
 function iniciarCamera(){
   if(typeof Quagga === 'undefined'){
-    document.getElementById('cam-result').textContent = '❌ Biblioteca de leitura não disponível. Use digitação manual.';
+    fecharCamera();
+    alert('⚠️ Leitor de código de barras não disponível.\nUse o botão ✏️ Digitar Manual.');
+    abrirNovaContaModal();
     return;
   }
   Quagga.init({
