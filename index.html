@@ -1549,22 +1549,15 @@ function digitarManual(){
 // ═══════════════════════════════════════════════
 async function enviarEmailAlertasDiarios(){
   const hoje = new Date().toISOString().split('T')[0];
-  const contasHoje = CP.filter(c=>c.vencimento===hoje && c.status==='Pendente');
+  // Apenas contas NÃO pagas (Pendente ou Vencido) - exclui Pago e Cancelado
+  const contasHoje = CP.filter(c=>
+    c.vencimento===hoje &&
+    (c.status==='Pendente' || c.status==='Vencido')
+  );
   if(!contasHoje.length) return;
 
-  // Buscar emails dos usuários cadastrados no Firebase Auth
-  // Como não temos acesso direto à lista de usuários no client,
-  // usamos os emails configurados no Firestore (config/usuarios)
-  let emails = [];
-  try{
-    const snap = await db.doc('config/usuarios').get();
-    if(snap.exists) emails = snap.data().emails||[];
-  }catch(e){}
-
-  if(!emails.length){
-    // Fallback: usar email do admin
-    emails = ['goes@antoniocarlosdegoes.com'];
-  }
+  // Enviar apenas para o administrador
+  const emails = [ADMIN_EMAIL];
 
   const listaContas = contasHoje.map(c=>
     `• ${c.fornecedor} — ${fr(c.valor)} — Banco: ${c.banco}`
@@ -1584,12 +1577,8 @@ async function enviarEmailAlertasDiarios(){
 }
 
 async function enviarEmailPagamento(cp, dataPag, valorPag){
-  let emails = [];
-  try{
-    const snap = await db.doc('config/usuarios').get();
-    if(snap.exists) emails = snap.data().emails||[];
-  }catch(e){}
-  if(!emails.length) emails = ['goes@antoniocarlosdegoes.com'];
+  // Enviar apenas para o administrador
+  const emails = [ADMIN_EMAIL];
 
   for(const email of emails){
     try{
