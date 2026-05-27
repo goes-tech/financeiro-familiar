@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Gestão Financeira – Goes &amp; Célia | v3.2</title>
+<title>Gestão Financeira – Goes-tech | v3.2</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -139,7 +139,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div class="lb">
 <div class="ico">💼</div>
 <h1>Gestão Financeira Familiar</h1>
-<p class="sub">Goes &amp; Célia</p>
+<p class="sub">Goes-tech</p>
 <span class="vb">v3.0</span>
 <div class="lf"><label>E-mail</label>
 <input id="ie" onkeydown="if(event.key==='Enter')login()" placeholder="seu@email.com" type="email"/></div>
@@ -157,7 +157,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <!-- APP (completamente oculto até login) -->
 <div id="as">
 <nav id="sb">
-<div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes &amp; Célia · v3.0</p></div>
+<div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes-tech · v3.0</p></div>
 <nav id="sb-nav">
 <!-- Menu montado dinamicamente pelo JS após login -->
 </nav>
@@ -210,7 +210,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div class="pg" id="pg-lancamento">
 <div id="la"></div>
 <div class="fc">
-<div class="st"><span>➕</span> Novo Lançamento</div>
+<div class="st"><span>✅</span> Contas Pagas</div>
 <div class="fg2">
 <div class="fg"><label>Data *</label><input id="fd" type="date"/></div>
 <div class="fg"><label>Tipo *</label>
@@ -517,8 +517,8 @@ let isAdmin = false;
 const MENU_ADMIN = `
   <div class="lbl">Principal</div>
   <a href="#" onclick="ir('dashboard',this)">📊 Dashboard</a>
-  <a href="#" onclick="ir('lancamento',this)">➕ Novo Lançamento</a>
   <a href="#" onclick="ir('contas-pagar',this)">📋 Contas a Pagar</a>
+  <a href="#" onclick="ir('lancamento',this)">✅ Contas Pagas</a>
   <a href="#" onclick="ir('extrato',this)">📋 Extrato</a>
   <div class="lbl">Relatórios</div>
   <a href="#" onclick="ir('mensal',this)">📅 Fechamento Mensal</a>
@@ -532,8 +532,8 @@ const MENU_ADMIN = `
 
 const MENU_USER = `
   <div class="lbl">Lançamentos</div>
-  <a href="#" onclick="ir('lancamento',this)">➕ Novo Lançamento</a>
   <a href="#" onclick="ir('contas-pagar',this)">📋 Contas a Pagar</a>
+  <a href="#" onclick="ir('lancamento',this)">✅ Contas Pagas</a>
   <div class="lbl">Cadastros</div>
   <a href="#" onclick="ir('imoveis',this)">🏠 Imóveis</a>
   <a href="#" onclick="ir('bancos',this)">🏦 Bancos / Contas</a>
