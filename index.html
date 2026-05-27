@@ -104,7 +104,8 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 .emp .ei{font-size:40px;margin-bottom:8px;}
 .tr2 td{font-weight:700;background:#eef3ff!important;}
 /* MODAL */
-#mconf{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+#mconf,#mcat{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+#mconf.show,#mcat.show{display:flex;}
 #mconf.show{display:flex;}
 .mbox{background:#fff;border-radius:14px;padding:28px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);}
 .mbox h3{font-size:16px;font-weight:700;color:var(--p);margin-bottom:16px;}
@@ -656,7 +657,9 @@ function onTipo(){
   const s=document.getElementById('fc2');
   s.innerHTML='<option value="">Selecione...</option>';
   if(t==='Repasse ao Cliente'){const o=document.createElement('option');o.value='Repasse ao cliente';o.textContent='Repasse ao cliente';s.appendChild(o);return;}
-  (CT[t]||[]).forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;s.appendChild(o);});
+  // Ordenar categorias alfabeticamente
+  const lista=[...(CT[t]||[])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  lista.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;s.appendChild(o);});
   const sg=SUGS[e]||[];
   if(sg.length&&t==='Despesa'){const g=document.createElement('optgroup');g.label='⭐ Sugeridas';sg.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;g.appendChild(o);});s.insertBefore(g,s.options[1]);}
 }
@@ -1073,11 +1076,18 @@ async function delCt(t,n){
 function ctTable(){
   const w=document.getElementById('ctt2');
   const BC={Receita:'br',Despesa:'bd',Transferência:'bt',Investimento:'bi','Repasse ao Cliente':'bp2'};
-  let h=`<table><thead><tr><th>Tipo</th><th>Categoria</th><th></th></tr></thead><tbody>`;
+  const acoes=isAdmin
+    ?'<th>Ações</th>'
+    :'<th></th>';
+  let h=`<table><thead><tr><th>Tipo</th><th>Categoria</th>${acoes}</tr></thead><tbody>`;
   Object.entries(CT).forEach(([t,l])=>{
     const lOrdenada=[...l].sort((a,b)=>a.localeCompare(b,'pt-BR'));
     lOrdenada.forEach(cat=>{
-      h+=`<tr><td><span class="bx ${BC[t]||'br'}">${t}</span></td><td>${cat}</td><td><button class="btn bd2 bsm" onclick="delCt('${t}','${cat}')">&#128465;</button></td></tr>`;
+      const btns=isAdmin
+        ?`<button class="btn bp bsm" onclick="mCatEditar('${t}','${cat}')" title="Renomear" style="margin-right:4px">&#9998;</button>`
+         +`<button class="btn bd2 bsm" onclick="mCatExcluir('${t}','${cat}')" title="Excluir com migração">&#128465;</button>`
+        :`<button class="btn bd2 bsm" onclick="delCt('${t}','${cat}')">&#128465;</button>`;
+      h+=`<tr><td><span class="bx ${BC[t]||'br'}">${t}</span></td><td>${cat}</td><td>${btns}</td></tr>`;
     });
   });
   h+=`</tbody></table>`;w.innerHTML=h;
@@ -1096,9 +1106,106 @@ function fecharMenu(){
   document.getElementById('sb').classList.remove('aberto');
   document.getElementById('overlay').classList.remove('show');
 }
+// ═══════════════════════════════════════════════
+// MODAL CATEGORIAS - EDITAR E MIGRAR
+// ═══════════════════════════════════════════════
+let _mCatAcao=null, _mCatTipo=null, _mCatNome=null;
+
+function mCatEditar(tipo, nome){
+  _mCatAcao='editar'; _mCatTipo=tipo; _mCatNome=nome;
+  document.getElementById('mcat-titulo').textContent='✏️ Renomear Categoria';
+  document.getElementById('mcat-body').innerHTML=`
+    <div class="mrow"><span class="ml">Tipo</span><span class="mv">${tipo}</span></div>
+    <div class="mrow"><span class="ml">Nome atual</span><span class="mv">${nome}</span></div>
+    <div style="margin-top:14px">
+      <label style="font-size:11px;font-weight:700;color:var(--p);text-transform:uppercase">Novo nome</label>
+      <input type="text" id="mcat-input" value="${nome}" style="width:100%;border:1.5px solid var(--bd);border-radius:8px;padding:9px 12px;font-size:14px;margin-top:5px">
+    </div>
+    <p style="font-size:11px;color:var(--mu);margin-top:10px">⚠️ Todos os lançamentos com esta categoria serão atualizados automaticamente.</p>`;
+  document.getElementById('mcat-btn-ok').textContent='✅ Renomear';
+  document.getElementById('mcat').classList.add('show');
+}
+
+function mCatExcluir(tipo, nome){
+  _mCatAcao='excluir'; _mCatTipo=tipo; _mCatNome=nome;
+  const outras=[...(CT[tipo]||[])].filter(c=>c!==nome).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const opts=outras.map(c=>`<option value="${c}">${c}</option>`).join('');
+  document.getElementById('mcat-titulo').textContent='🗑️ Excluir Categoria';
+  document.getElementById('mcat-body').innerHTML=`
+    <div class="mrow"><span class="ml">Tipo</span><span class="mv">${tipo}</span></div>
+    <div class="mrow"><span class="ml">Categoria a excluir</span><span class="mv R">${nome}</span></div>
+    <div style="margin-top:14px">
+      <label style="font-size:11px;font-weight:700;color:var(--p);text-transform:uppercase">Migrar lançamentos para</label>
+      <select id="mcat-input" style="width:100%;border:1.5px solid var(--bd);border-radius:8px;padding:9px 12px;font-size:14px;margin-top:5px">
+        <option value="">-- Selecione a categoria destino --</option>
+        ${opts}
+      </select>
+    </div>
+    <p style="font-size:11px;color:var(--mu);margin-top:10px">⚠️ Todos os lançamentos serão migrados para a categoria selecionada antes da exclusão.</p>`;
+  document.getElementById('mcat-btn-ok').textContent='✅ Migrar e Excluir';
+  document.getElementById('mcat').classList.add('show');
+}
+
+async function mCatConfirmar(){
+  const input=document.getElementById('mcat-input');
+  const val=input?.value?.trim();
+  if(!val){alert('Preencha o campo obrigatório.');return;}
+
+  const btn=document.getElementById('mcat-btn-ok');
+  btn.disabled=true; btn.textContent='⏳ Processando...';
+
+  try{
+    if(_mCatAcao==='editar'){
+      // 1. Atualizar todos os lancamentos com a categoria antiga
+      const snap=await db.collection('lancamentos')
+        .where('categoria','==',_mCatNome).get();
+      const batch=db.batch();
+      snap.docs.forEach(d=>batch.update(d.ref,{categoria:val}));
+      await batch.commit();
+      // 2. Atualizar a categoria no config
+      const cats=JSON.parse(JSON.stringify(CT));
+      const idx=cats[_mCatTipo].indexOf(_mCatNome);
+      if(idx>=0) cats[_mCatTipo][idx]=val;
+      await db.doc('config/categorias').set({cats});
+      alert(`Categoria renomeada! ${snap.size} lançamento(s) atualizado(s).`);
+    } else {
+      // 1. Migrar lancamentos para categoria destino
+      const snap=await db.collection('lancamentos')
+        .where('categoria','==',_mCatNome).get();
+      const batch=db.batch();
+      snap.docs.forEach(d=>batch.update(d.ref,{categoria:val}));
+      await batch.commit();
+      // 2. Remover categoria do config
+      const cats=JSON.parse(JSON.stringify(CT));
+      cats[_mCatTipo]=cats[_mCatTipo].filter(x=>x!==_mCatNome);
+      await db.doc('config/categorias').set({cats});
+      alert(`Categoria excluída! ${snap.size} lançamento(s) migrado(s) para "${val}".`);
+    }
+    document.getElementById('mcat').classList.remove('show');
+  }catch(e){
+    alert('Erro: '+e.message);
+  }finally{
+    btn.disabled=false;
+    btn.textContent='✅ Confirmar';
+  }
+}
+
 function fr(v){return(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
 function fd(d){if(!d)return'';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;}
 function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}">${m}</div>`;}
 </script>
+
+<!-- MODAL CATEGORIAS (editar/migrar) -->
+<div id="mcat">
+  <div class="mbox" style="max-width:480px">
+    <h3 id="mcat-titulo">Categoria</h3>
+    <div id="mcat-body"></div>
+    <div class="mbtns">
+      <button class="btn bw" onclick="document.getElementById('mcat').classList.remove('show')">Cancelar</button>
+      <button class="btn bp" id="mcat-btn-ok" onclick="mCatConfirmar()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
