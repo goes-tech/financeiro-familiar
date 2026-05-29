@@ -1148,6 +1148,7 @@ function extrato(){
   L.forEach(l=>{
     const s=l.tipo==='Receita'?'+':l.tipo==='Despesa'?'-':'';
     const c=l.tipo==='Receita'?'color:#2e7d32':l.tipo==='Despesa'?'color:#c62828':'';
+    const empBadge=l.modalidade==='emprestimo'?'<span style="background:#e8eaf6;color:#3949ab;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px">🔄 EMP</span>':'';
     h+=`<tr><td>${fd(l.data)}</td><td><span class="bx ${BC[l.tipo]||'br'}">${l.tipo}</span></td>
     <td>${l.entidade}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}${empBadge}</td>
     <td>${l.imovel||'–'}</td><td style="font-weight:600;${c}">${s} ${fr(l.valor)}</td>
