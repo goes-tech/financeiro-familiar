@@ -1270,32 +1270,6 @@ function mensal(){
     h+=`<tr><td>${fd(l.data)}</td><td>${l.tipo}</td><td>${l.entidade}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}</td><td>${l.imovel||''}</td><td style="font-weight:600;${col}">${s} ${fr(l.valor)}</td></tr>`;
   });
   h+=`</tbody></table></div></div>`;
-  // Seção de empréstimos
-  const empConcedidos=L.filter(l=>l.modalidade==='emprestimo'&&l.empCredora===e&&l.tipo==='Transferência'&&l.descricao.includes('A RECEBER'));
-  const empRecebidos=L.filter(l=>l.modalidade==='emprestimo'&&l.empDevedora===e&&l.tipo==='Transferência'&&l.descricao.includes('A PAGAR'));
-  if(empConcedidos.length||empRecebidos.length){
-    h+=`<div class="card" style="margin-top:14px;border-left:4px solid #3949ab">`;
-    h+=`<div class="st" style="margin-bottom:8px"><span>🔄</span>Empréstimos entre Entidades</div>`;
-    if(empConcedidos.length){
-      const totCred=empConcedidos.reduce((s,l)=>s+l.valor,0);
-      h+=`<div style="margin-bottom:10px"><b style="color:#2e7d32">💰 A Receber (empréstimos concedidos): ${fr(totCred)}</b><div class="tw"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>`;
-      empConcedidos.forEach(l=>{h+=`<tr><td>${fd(l.data)}</td><td>${l.descricao}</td><td style="color:#2e7d32;font-weight:600">${fr(l.valor)}</td></tr>`;});
-      h+=`</tbody></table></div></div>`;
-    }
-    if(empRecebidos.length){
-      const totDev=empRecebidos.reduce((s,l)=>s+l.valor,0);
-      h+=`<div><b style="color:#c62828">💸 A Pagar (empréstimos recebidos): ${fr(totDev)}</b><div class="tw"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>`;
-      empRecebidos.forEach(l=>{h+=`<tr><td>${fd(l.data)}</td><td>${l.descricao}</td><td style="color:#c62828;font-weight:600">${fr(l.valor)}</td></tr>`;});
-      h+=`</tbody></table></div></div>`;
-    }
-    h+=`</div>`;
-  }
-  o.innerHTML=h;
-}
-
-// ═══════════════════════════════════════════════
-// FECHAMENTO ANUAL
-// ═══════════════════════════════════════════════
 function anual(){
   if(!isAdmin) return;
   const a=parseInt(document.getElementById('aa').value);
@@ -1336,7 +1310,7 @@ function porEnt(){
     const c=l.tipo==='Receita'?'color:#2e7d32':l.tipo==='Despesa'?'color:#c62828':'';
     h+=`<tr><td>${fd(l.data)}</td><td>${l.tipo}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}</td><td style="font-weight:600;${c}">${s} ${fr(l.valor)}</td><td>${l.status}</td></tr>`;
   });
-  h+=`</tbody></table></div></div>`;o.innerHTML=h;
+  h+=`</tbody></table></div></div>`;  const empC=L.filter(l=>l.modalidade==='emprestimo'&&l.empCredora===e&&l.tipo==='Transferência');const empD=L.filter(l=>l.modalidade==='emprestimo'&&l.empDevedora===e&&l.tipo==='Transferência');if(empC.length||empD.length){h+='<div class="card" style="margin-top:14px;border-left:4px solid #3949ab">';h+='<div class="st" style="margin-bottom:8px"><span>🔄</span>Empréstimos</div>';if(empC.length){const tC=empC.reduce((s,l)=>s+l.valor,0);h+='<div style="margin-bottom:8px"><b style="color:#2e7d32">💰 A Receber: '+fr(tC)+'</b><div class="tw"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>';empC.forEach(l=>{h+='<tr><td>'+fd(l.data)+'</td><td>'+l.descricao+'</td><td style="color:#2e7d32;font-weight:600">'+fr(l.valor)+'</td></tr>';});h+='</tbody></table></div></div>';}if(empD.length){const tD=empD.reduce((s,l)=>s+l.valor,0);h+='<div><b style="color:#c62828">💸 A Pagar: '+fr(tD)+'</b><div class="tw"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>';empD.forEach(l=>{h+='<tr><td>'+fd(l.data)+'</td><td>'+l.descricao+'</td><td style="color:#c62828;font-weight:600">'+fr(l.valor)+'</td></tr>';});h+='</tbody></table></div></div>';}h+='</div>';}o.innerHTML=h;
 }
 
 // ═══════════════════════════════════════════════
