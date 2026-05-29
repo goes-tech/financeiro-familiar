@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Gestão Financeira – Goes-tech | v3.2</title>
+<title>Gestão Financeira – Goes-tech | v3.3</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -128,8 +128,8 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 .cam-line{position:absolute;top:50%;left:0;width:100%;height:2px;background:rgba(255,200,0,.9);animation:scan 2s linear infinite;}
 @keyframes scan{0%{top:15%;}100%{top:85%;}}
 #cam-msg{color:#fff;margin-top:12px;font-size:13px;text-align:center;max-width:300px;padding:0 10px;}
-#mconf,#mcat,#modal-conta,#modal-pagar{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
-#mconf.show,#mcat.show,#modal-conta.show,#modal-pagar.show{display:flex;}
+#mconf,#mcat,#modal-conta,#modal-pagar,#modal-preview-conta,#modal-edit-lanc{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+#mconf.show,#mcat.show,#modal-conta.show,#modal-pagar.show,#modal-preview-conta.show,#modal-edit-lanc.show{display:flex;}
 @media(max-width:768px){:root{--sw:0px;}#sb{transform:translateX(-240px);width:240px;transition:transform .3s;}#sb.aberto{transform:translateX(0);}#overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:99;}#overlay.show{display:block;}.chg{grid-template-columns:1fr;}.fg2{grid-template-columns:1fr;}#btn-menu{display:flex;}}@media(min-width:769px){#btn-menu{display:none;}#overlay{display:none!important;}}
 </style>
 </head>
@@ -140,7 +140,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div class="ico">💼</div>
 <h1>Gestão Financeira Familiar</h1>
 <p class="sub">Goes-tech</p>
-<span class="vb">v3.2</span>
+<span class="vb">v3.3</span>
 <div class="lf"><label>E-mail</label>
 <input id="ie" onkeydown="if(event.key==='Enter')login()" placeholder="seu@email.com" type="email"/></div>
 <div class="lf"><label>Senha</label>
@@ -151,13 +151,13 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <button class="btn-in" id="btn-in" onclick="login()">🔐 Entrar</button>
 <div id="lmsg"></div>
 <button class="btn-fgt" onclick="reset()">Esqueci minha senha</button>
-<div class="lfoot">🔒 Firebase Authentication · v3.2</div>
+<div class="lfoot">🔒 Firebase Authentication · v3.3</div>
 </div>
 </div>
 <!-- APP (completamente oculto até login) -->
 <div id="as">
 <nav id="sb">
-<div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes-tech · v3.2</p></div>
+<div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes-tech · v3.3</p></div>
 <nav id="sb-nav">
 <!-- Menu montado dinamicamente pelo JS após login -->
 </nav>
@@ -241,6 +241,8 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <option>Corolla (ACGOES)</option><option>Saveiro (ACGOES)</option>
 <option>Fox (ACGOES)</option><option>CBX 250 (Célia)</option>
 </select></div>
+<div class="fg"><label>Fornecedor / Credor</label>
+<input type="text" id="fforn" placeholder="NOME DO FORNECEDOR" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></div>
 <div class="fg full"><label>Descrição *</label>
 <input id="fde" placeholder="Descreva o lançamento..." type="text"/></div>
 <div class="fg"><label>Conta de outra entidade</label>
@@ -445,6 +447,48 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </div>
 </div>
 <div id="overlay" onclick="toggleMenu()"></div>
+
+<!-- MODAL EDITAR LANÇAMENTO -->
+<div id="modal-edit-lanc">
+  <div class="mbox" style="max-width:600px;max-height:92vh;overflow-y:auto">
+    <h3>✏️ Editar Lançamento</h3>
+    <div class="fg2" style="margin-top:12px">
+      <div class="fg"><label>Data *</label><input type="date" id="el-data"></div>
+      <div class="fg"><label>Tipo *</label>
+        <select id="el-tipo">
+          <option>Receita</option><option>Despesa</option>
+          <option>Transferência</option><option>Investimento</option>
+          <option>Repasse ao Cliente</option>
+        </select></div>
+      <div class="fg"><label>Entidade *</label>
+        <select id="el-ent" onchange="elPopBanco()">
+          <option value="goes">Goes (Pessoal)</option><option value="celia">Célia (Pessoal)</option>
+          <option value="acgoes">ACGOES</option><option value="mmp">Muito Mais Peixe</option>
+          <option value="eva">EVA</option><option value="sempra">SEMPRA (Holding)</option>
+        </select></div>
+      <div class="fg"><label>Banco / Conta *</label>
+        <select id="el-banco"></select></div>
+      <div class="fg"><label>Categoria *</label>
+        <select id="el-cat"></select></div>
+      <div class="fg"><label>Valor (R$) *</label>
+        <input type="number" id="el-valor" step="0.01" min="0"></div>
+      <div class="fg"><label>Fornecedor</label>
+        <input type="text" id="el-forn" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></div>
+      <div class="fg full"><label>Descrição *</label>
+        <input type="text" id="el-desc"></div>
+      <div class="fg"><label>Imóvel</label>
+        <select id="el-imovel"></select></div>
+      <div class="fg"><label>Status</label>
+        <select id="el-status"><option>Efetivado</option><option>Pendente</option><option>Agendado</option></select></div>
+      <div class="fg full"><label>Observações</label>
+        <textarea id="el-obs" rows="2"></textarea></div>
+    </div>
+    <div class="mbtns">
+      <button class="btn bw" onclick="document.getElementById('modal-edit-lanc').classList.remove('show')">Cancelar</button>
+      <button class="btn bp" onclick="salvarEdicaoLanc()">💾 Salvar Alterações</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL CONFIRMAÇÃO -->
 <div id="mconf">
@@ -773,7 +817,9 @@ function previewLanc(){
   const fve=document.getElementById('fve').value;
   const fo=document.getElementById('fo');
   const foTxt=fo.options[fo.selectedIndex]?.text||'';
+  const forn=document.getElementById('fforn').value.trim();
   document.getElementById('mbody').innerHTML=`
+    ${forn?`<div class="mrow"><span class="ml">Fornecedor</span><span class="mv">${forn}</span></div>`:''}
     <div class="mrow"><span class="ml">Data</span><span class="mv">${fd(d)}</span></div>
     <div class="mrow"><span class="ml">Tipo</span><span class="mv">${t}</span></div>
     <div class="mrow"><span class="ml">Entidade</span><span class="mv">${en}</span></div>
@@ -805,6 +851,7 @@ async function salvar(){
     await db.collection('lancamentos').add({
       data:d,tipo:t,entidade:ENT.find(x=>x.id===e)?.n||e,entidadeId:e,
       banco:b,categoria:cat,valor:v,descricao:de,
+      fornecedor:document.getElementById('fforn').value.trim(),
       contaOutra:document.getElementById('fo').value||'',
       imovel:document.getElementById('fim').value||'',
       veiculo:document.getElementById('fve').value||'',
@@ -820,7 +867,7 @@ async function salvar(){
 }
 
 function limpar(){
-  ['ft','fen','fb','fc2','fim','fve','fo','fdt','fob'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['ft','fen','fb','fc2','fim','fve','fo','fdt','fob','fforn'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('fv').value='';document.getElementById('fde').value='';
   document.getElementById('fst').value='Efetivado';
   document.getElementById('fd').value=new Date().toISOString().split('T')[0];
@@ -855,7 +902,10 @@ function extrato(){
     h+=`<tr><td>${fd(l.data)}</td><td><span class="bx ${BC[l.tipo]||'br'}">${l.tipo}</span></td>
     <td>${l.entidade}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}</td>
     <td>${l.imovel||'–'}</td><td style="font-weight:600;${c}">${s} ${fr(l.valor)}</td>
-    <td>${l.status}</td><td><button class="btn bd2 bsm" onclick="delLanc('${l.id}')">🗑️</button></td></tr>`;
+    <td>${l.status}</td><td style="white-space:nowrap">
+        ${isAdmin?`<button class="btn bw bsm" onclick="editarLanc('${l.id}')" style="margin-right:3px" title="Editar">✏️</button>`:''}
+        <button class="btn bd2 bsm" onclick="delLanc('${l.id}')" title="Excluir">🗑️</button>
+      </td></tr>`;
   });
   h+=`</tbody><tfoot><tr class="tr2"><td colspan="7" style="text-align:right">TOTAIS:</td>
   <td colspan="3"><span style="color:#2e7d32">Rec: ${fr(r)}</span> | <span style="color:#c62828">Desp: ${fr(d)}</span> | <span style="color:${r-d>=0?'#2e7d32':'#c62828'}">Saldo: ${fr(r-d)}</span></td></tr></tfoot></table>`;
@@ -1358,6 +1408,35 @@ function mcPopBanco(){
   (BK[ent]||BK0[ent]||[]).forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;s.appendChild(o);});
 }
 
+function previewConta(){
+  const forn=document.getElementById('mc-forn').value.trim();
+  const val=parseFloat(document.getElementById('mc-val').value);
+  const venc=document.getElementById('mc-venc').value;
+  const ent=document.getElementById('mc-ent').value;
+  const banco=document.getElementById('mc-banco').value;
+  const cat=document.getElementById('mc-cat').value;
+  if(!forn||!val||!venc||!ent||!banco||!cat){alert('Preencha todos os campos obrigatórios (*).');return;}
+  const entNome=ENT.find(x=>x.id===ent)?.n||ent;
+  const rec=document.getElementById('mc-rec').value;
+  const bol=document.getElementById('mc-bol').value.trim();
+  document.getElementById('mpc-body').innerHTML=`
+    <div class="mrow"><span class="ml">Fornecedor</span><span class="mv">${forn}</span></div>
+    <div class="mrow"><span class="ml">Valor</span><span class="mv" style="color:#c62828">${fr(val)}</span></div>
+    <div class="mrow"><span class="ml">Vencimento</span><span class="mv">${fd(venc)}</span></div>
+    <div class="mrow"><span class="ml">Entidade</span><span class="mv">${entNome}</span></div>
+    <div class="mrow"><span class="ml">Banco / Conta</span><span class="mv">${banco}</span></div>
+    <div class="mrow"><span class="ml">Categoria</span><span class="mv">${cat}</span></div>
+    <div class="mrow"><span class="ml">Recorrência</span><span class="mv">${rec}</span></div>
+    ${bol?`<div class="mrow"><span class="ml">Nº Boleto</span><span class="mv">${bol}</span></div>`:''}`;
+  document.getElementById('modal-conta').classList.remove('show');
+  document.getElementById('modal-preview-conta').classList.add('show');
+}
+
+async function confirmarSalvarConta(){
+  document.getElementById('modal-preview-conta').classList.remove('show');
+  await salvarConta();
+}
+
 async function salvarConta(){
   const forn=document.getElementById('mc-forn').value.trim();
   const val=parseFloat(document.getElementById('mc-val').value);
@@ -1423,11 +1502,27 @@ async function cancelarConta(id){
 }
 
 // ── Pagar Conta ─────────────────────────────────
+function mpPopBanco(){
+  const ent=document.getElementById('mp-outra-ent').value;
+  const s=document.getElementById('mp-outra-banco');
+  const div=document.getElementById('mp-outra-banco-div');
+  s.innerHTML='<option value="">Selecione...</option>';
+  if(ent){
+    (BK[ent]||BK0[ent]||[]).forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;s.appendChild(o);});
+    div.style.display='block';
+  } else {
+    div.style.display='none';
+  }
+}
+
 function abrirPagar(id){
   const cp=CP.find(c=>c.id===id);if(!cp)return;
   _cpPagar=id;
   document.getElementById('mp-data').value=new Date().toISOString().split('T')[0];
   document.getElementById('mp-val').value=cp.valor;
+  document.getElementById('mp-outra-ent').value='';
+  document.getElementById('mp-outra-banco').innerHTML='<option value="">Selecione...</option>';
+  document.getElementById('mp-outra-banco-div').style.display='none';
   document.getElementById('mp-body').innerHTML=`
     <div class="mrow"><span class="ml">Fornecedor</span><span class="mv">${cp.fornecedor}</span></div>
     <div class="mrow"><span class="ml">Vencimento</span><span class="mv">${fd(cp.vencimento)}</span></div>
@@ -1440,23 +1535,57 @@ async function confirmarPagamento(){
   const cp=CP.find(c=>c.id===_cpPagar);if(!cp)return;
   const dataPag=document.getElementById('mp-data').value;
   const valPag=parseFloat(document.getElementById('mp-val').value);
+  const outraEnt=document.getElementById('mp-outra-ent').value;
+  const outraBanco=document.getElementById('mp-outra-banco').value;
   if(!dataPag||!valPag){alert('Preencha data e valor.');return;}
+  if(outraEnt&&!outraBanco){alert('Selecione o banco da entidade pagadora.');return;}
   const btn=document.querySelector('#modal-pagar .bp');
   btn.disabled=true;btn.textContent='⏳...';
   try{
-    await db.collection('contas_pagar').doc(_cpPagar).update({status:'Pago',dataPagamento:dataPag,valorPago:valPag});
+    // Marcar conta como paga
+    await db.collection('contas_pagar').doc(_cpPagar).update({status:'Pago',dataPagamento:dataPag,valorPago:valPag,pagoPor:outraEnt||cp.entidadeId});
+    const descBase=`Pgto: ${cp.fornecedor}${cp.boleto?' ('+cp.boleto+')':''}`;
+    const entPagadora=outraEnt||cp.entidadeId;
+    const bancoPagador=outraBanco||cp.banco;
+    const nomePagadora=ENT.find(e=>e.id===entPagadora)?.n||entPagadora;
+    const nomeDevedora=ENT.find(e=>e.id===cp.entidadeId)?.n||cp.entidadeId;
+    // Lançamento 1: Débito na conta de quem pagou
     await db.collection('lancamentos').add({
       data:dataPag,tipo:'Despesa',
-      entidade:ENT.find(e=>e.id===cp.entidadeId)?.n||cp.entidadeId,
-      entidadeId:cp.entidadeId,banco:cp.banco,categoria:cp.categoria,
-      valor:valPag,descricao:`Pgto: ${cp.fornecedor}${cp.boleto?' ('+cp.boleto+')':''}`,
-      imovel:'',veiculo:'',destino:'',contaOutra:'',status:'Efetivado',
-      obs:'Gerado automaticamente pelo pagamento de conta.',
+      entidade:nomePagadora,entidadeId:entPagadora,
+      banco:bancoPagador,categoria:cp.categoria,
+      valor:valPag,descricao:descBase+(outraEnt?` [pago por ${nomePagadora} p/ ${nomeDevedora}]`:''),
+      imovel:cp.imovel||'',veiculo:'',destino:'',contaOutra:'',status:'Efetivado',
+      obs:'Pagamento de conta a pagar.',
       criadoEm:new Date().toISOString(),criadoPor:auth.currentUser?.email||'',
     });
-    await enviarEmailPagamento(cp,dataPag,valPag);
+    // Se pagamento cruzado: gerar lançamentos de compensação
+    if(outraEnt && outraEnt!==cp.entidadeId){
+      // Lançamento 2: Crédito para quem pagou (direito a receber da devedora)
+      await db.collection('lancamentos').add({
+        data:dataPag,tipo:'Transferência',
+        entidade:nomePagadora,entidadeId:entPagadora,
+        banco:bancoPagador,categoria:'Pagamento por terceiro',
+        valor:valPag,descricao:`A receber de ${nomeDevedora} – ${descBase}`,
+        imovel:'',veiculo:'',destino:'',contaOutra:'',status:'Pendente',
+        obs:`Crédito gerado por pagamento cruzado. ${nomeDevedora} deve a ${nomePagadora}.`,
+        criadoEm:new Date().toISOString(),criadoPor:auth.currentUser?.email||'',
+      });
+      // Lançamento 3: Débito para a entidade devedora (dívida com quem pagou)
+      await db.collection('lancamentos').add({
+        data:dataPag,tipo:'Transferência',
+        entidade:nomeDevedora,entidadeId:cp.entidadeId,
+        banco:cp.banco,categoria:'Pagamento por terceiro',
+        valor:valPag,descricao:`A pagar para ${nomePagadora} – ${descBase}`,
+        imovel:'',veiculo:'',destino:'',contaOutra:'',status:'Pendente',
+        obs:`Débito gerado por pagamento cruzado. ${nomeDevedora} deve a ${nomePagadora}.`,
+        criadoEm:new Date().toISOString(),criadoPor:auth.currentUser?.email||'',
+      });
+      alert(`✅ Pagamento registrado!\n\n3 lançamentos criados:\n1. Débito em ${nomePagadora}\n2. Crédito para ${nomePagadora} (a receber de ${nomeDevedora})\n3. Débito em ${nomeDevedora} (deve a ${nomePagadora})`);
+    } else {
+      alert('✅ Pagamento registrado! Lançamento criado no extrato.');
+    }
     document.getElementById('modal-pagar').classList.remove('show');
-    alert('✅ Pagamento registrado! Lançamento criado no extrato.');
   }catch(e){alert('Erro: '+e.message);}
   finally{btn.disabled=false;btn.textContent='✅ Confirmar';}
 }
@@ -1527,6 +1656,7 @@ function processarBoleto(codigo){
 
 // ── EmailJS ─────────────────────────────────────
 async function enviarEmailAlertasDiarios(){
+  return; // E-mails suspensos
   const hoje=new Date().toISOString().split('T')[0];
   const contas=CP.filter(c=>c.vencimento===hoje&&(c.status==='Pendente'||c.status==='Vencido'));
   if(!contas.length) return;
@@ -1544,6 +1674,7 @@ async function enviarEmailAlertasDiarios(){
 }
 
 async function enviarEmailPagamento(cp,dataPag,valPag){
+  return; // E-mails temporariamente suspensos
   if(typeof emailjs==='undefined') return;
   try{
     await emailjs.send(EJS_SVC,EJS_TPL,{
@@ -1556,12 +1687,81 @@ async function enviarEmailPagamento(cp,dataPag,valPag){
 }
 
 function verificarAlertasDiarios(){
-  const agora=new Date();
-  const chave='alerta_'+agora.toISOString().split('T')[0];
-  if(agora.getHours()>=7&&!sessionStorage.getItem(chave)){
-    sessionStorage.setItem(chave,'1');
-    enviarEmailAlertasDiarios();
+  return; // E-mails temporariamente suspensos
+}
+
+// ═══════════════════════════════════════════════
+// EDITAR LANÇAMENTO (admin)
+// ═══════════════════════════════════════════════
+let _editLancId = null;
+
+function editarLanc(id){
+  const l = LL.find(x=>x.id===id);
+  if(!l) return;
+  _editLancId = id;
+  document.getElementById('el-data').value   = l.data||'';
+  document.getElementById('el-tipo').value   = l.tipo||'';
+  document.getElementById('el-ent').value    = l.entidadeId||'';
+  elPopBanco();
+  document.getElementById('el-banco').value  = l.banco||'';
+  elPopCat();
+  document.getElementById('el-cat').value    = l.categoria||'';
+  document.getElementById('el-valor').value  = l.valor||'';
+  document.getElementById('el-forn').value   = (l.fornecedor||'').toUpperCase();
+  document.getElementById('el-desc').value   = l.descricao||'';
+  document.getElementById('el-status').value = l.status||'Efetivado';
+  document.getElementById('el-obs').value    = l.obs||'';
+  // Popular imovel
+  const si=document.getElementById('el-imovel');
+  si.innerHTML='<option value="">Nenhum</option>';
+  for(let i=1;i<=45;i++){const cod=`im${i}`,im=IM[cod];const o=document.createElement('option');o.value=cod;o.textContent=im?`${cod} – ${im.desc}`:cod;si.appendChild(o);}
+  si.value = l.imovel||'';
+  document.getElementById('modal-edit-lanc').classList.add('show');
+}
+
+function elPopBanco(){
+  const ent=document.getElementById('el-ent').value;
+  const s=document.getElementById('el-banco');
+  s.innerHTML='<option value="">Selecione...</option>';
+  (BK[ent]||BK0[ent]||[]).forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;s.appendChild(o);});
+}
+
+function elPopCat(){
+  const tipo=document.getElementById('el-tipo').value;
+  const s=document.getElementById('el-cat');
+  s.innerHTML='<option value="">Selecione...</option>';
+  [...(CT[tipo]||[])].sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(x=>{const o=document.createElement('option');o.value=x;o.textContent=x;s.appendChild(o);});
+}
+
+async function salvarEdicaoLanc(){
+  if(!_editLancId) return;
+  const dados = {
+    data:     document.getElementById('el-data').value,
+    tipo:     document.getElementById('el-tipo').value,
+    entidadeId: document.getElementById('el-ent').value,
+    entidade: ENT.find(x=>x.id===document.getElementById('el-ent').value)?.n||'',
+    banco:    document.getElementById('el-banco').value,
+    categoria:document.getElementById('el-cat').value,
+    valor:    parseFloat(document.getElementById('el-valor').value),
+    fornecedor:document.getElementById('el-forn').value.trim(),
+    descricao:document.getElementById('el-desc').value.trim(),
+    imovel:   document.getElementById('el-imovel').value,
+    status:   document.getElementById('el-status').value,
+    obs:      document.getElementById('el-obs').value.trim(),
+    editadoEm: new Date().toISOString(),
+    editadoPor: auth.currentUser?.email||'',
+  };
+  if(!dados.data||!dados.tipo||!dados.entidadeId||!dados.banco||!dados.categoria||!dados.valor||!dados.descricao){
+    alert('Preencha todos os campos obrigatórios.');return;
   }
+  const btn=document.querySelector('#modal-edit-lanc .bp');
+  btn.disabled=true;btn.textContent='⏳...';
+  try{
+    await db.collection('lancamentos').doc(_editLancId).update(dados);
+    document.getElementById('modal-edit-lanc').classList.remove('show');
+    alert('✅ Lançamento atualizado!');
+  }catch(e){alert('Erro: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='💾 Salvar Alterações';}
 }
 
 function fr(v){return(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
@@ -1587,7 +1787,7 @@ function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}
     <h3 id="mc-tit">📋 Nova Conta a Pagar</h3>
     <div class="fg2" style="margin-top:12px">
       <div class="fg full"><label>Fornecedor / Credor *</label>
-        <input type="text" id="mc-forn" placeholder="Ex: Conta de Luz, Fornecedor..."></div>
+        <input type="text" id="mc-forn" placeholder="EX: CONTA DE LUZ, FORNECEDOR..." oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></div>
       <div class="fg"><label>Valor *</label>
         <input type="number" id="mc-val" placeholder="0,00" step="0.01" min="0"></div>
       <div class="fg"><label>Vencimento *</label>
@@ -1616,7 +1816,7 @@ function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}
     </div>
     <div class="mbtns">
       <button class="btn bw" onclick="fecharNovaConta()">Cancelar</button>
-      <button class="btn bp" onclick="salvarConta()">💾 Salvar</button>
+      <button class="btn bp" onclick="previewConta()">💾 Salvar</button>
     </div>
   </div>
 </div>
@@ -1634,6 +1834,18 @@ function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}
   </div>
 </div>
 
+<!-- MODAL PREVIEW CONTA A PAGAR -->
+<div id="modal-preview-conta">
+  <div class="mbox" style="max-width:480px">
+    <h3>🔍 Confirmar Conta a Pagar</h3>
+    <div id="mpc-body"></div>
+    <div class="mbtns">
+      <button class="btn bw" onclick="document.getElementById('modal-preview-conta').classList.remove('show');document.getElementById('modal-conta').classList.add('show')">✏️ Corrigir</button>
+      <button class="btn bp" onclick="confirmarSalvarConta()">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL PAGAR -->
 <div id="modal-pagar">
   <div class="mbox" style="max-width:440px">
@@ -1646,6 +1858,22 @@ function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}
     <div class="fg" style="margin-top:10px">
       <label>Valor Pago (R$)</label>
       <input type="number" id="mp-val" step="0.01" min="0">
+    </div>
+    <div class="fg" style="margin-top:10px">
+      <label>Pago por outra entidade? (opcional)</label>
+      <select id="mp-outra-ent" onchange="mpPopBanco()">
+        <option value="">Não — pago pela própria entidade</option>
+        <option value="goes">Goes (Pessoal)</option>
+        <option value="celia">Célia (Pessoal)</option>
+        <option value="acgoes">ACGOES</option>
+        <option value="mmp">Muito Mais Peixe</option>
+        <option value="eva">EVA</option>
+        <option value="sempra">SEMPRA (Holding)</option>
+      </select>
+    </div>
+    <div class="fg" style="margin-top:10px" id="mp-outra-banco-div" style="display:none">
+      <label>Banco da entidade pagadora</label>
+      <select id="mp-outra-banco"><option value="">Selecione...</option></select>
     </div>
     <div class="mbtns">
       <button class="btn bw" onclick="document.getElementById('modal-pagar').classList.remove('show')">Cancelar</button>
