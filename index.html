@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Gestão Financeira – Goes-tech | v3.4</title>
+<title>Gestão Financeira – Goes-tech | v3.5</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -140,7 +140,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div class="ico">💼</div>
 <h1>Gestão Financeira Familiar</h1>
 <p class="sub">Goes-tech</p>
-<span class="vb">v3.4</span>
+<span class="vb">v3.5</span>
 <div class="lf"><label>E-mail</label>
 <input id="ie" onkeydown="if(event.key==='Enter')login()" placeholder="seu@email.com" type="email"/></div>
 <div class="lf"><label>Senha</label>
@@ -151,13 +151,13 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <button class="btn-in" id="btn-in" onclick="login()">🔐 Entrar</button>
 <div id="lmsg"></div>
 <button class="btn-fgt" onclick="reset()">Esqueci minha senha</button>
-<div class="lfoot">🔒 Firebase Authentication · v3.4</div>
+<div class="lfoot">🔒 Firebase Authentication · v3.5</div>
 </div>
 </div>
 <!-- APP (completamente oculto até login) -->
 <div id="as">
 <nav id="sb">
-<div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes-tech · v3.4</p></div>
+<div class="logo"><h2>💼 Gestão Financeira</h2><p>Goes-tech · v3.5</p></div>
 <nav id="sb-nav">
 <!-- Menu montado dinamicamente pelo JS após login -->
 </nav>
@@ -226,6 +226,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <option value="entre-contas">Entre Contas</option>
 <option value="investimento">Para Investimento</option>
 <option value="repasse-cliente">Repasse ao Cliente</option>
+<option value="emprestimo">Empréstimo entre Entidades</option>
 </select></div>
 <div class="fg"><label>Entidade *</label>
 <select id="fen" onchange="onEnt()">
@@ -266,6 +267,20 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div class="fg" id="div-repasse-cli" style="display:none">
 <label>Nome do Cliente</label>
 <input type="text" id="fcli" placeholder="NOME DO CLIENTE" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></div>
+<div class="fg" id="div-emp-devedora" style="display:none">
+<label>Entidade Devedora (quem recebe o empréstimo) *</label>
+<select id="femp-dev">
+<option value="">Selecione...</option>
+<option value="goes">Goes (Pessoal)</option>
+<option value="celia">Célia (Pessoal)</option>
+<option value="acgoes">ACGOES</option>
+<option value="mmp">Muito Mais Peixe</option>
+<option value="eva">EVA</option>
+<option value="sempra">SEMPRA (Holding)</option>
+</select></div>
+<div class="fg" id="div-emp-desc" style="display:none">
+<label>Despesa original da entidade devedora</label>
+<input type="text" id="femp-desc" placeholder="EX: PAGAMENTO FORNECEDOR XYZ" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></div>
 <div class="fg"><label>Status</label>
 <select id="fst"><option>Efetivado</option><option>Pendente</option><option>Agendado</option></select></div>
 <div class="fg full"><label>Observações</label>
@@ -760,7 +775,7 @@ function ir(id,el){
 // FORM LANÇAMENTO
 // ═══════════════════════════════════════════════
 function ocultarCamposModalidade(){
-  ['div-conta-destino','div-fundo','div-repasse','div-repasse-cli'].forEach(id=>{
+  ['div-conta-destino','div-fundo','div-repasse','div-repasse-cli','div-emp-devedora','div-emp-desc'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display='none';
   });
@@ -788,12 +803,26 @@ function onModalidade(){
   } else if(mod==='repasse-cliente'){
     document.getElementById('div-repasse').style.display='';
     document.getElementById('div-repasse-cli').style.display='';
-    // Popular categorias de repasse
     const s=document.getElementById('fc2');
     s.innerHTML='<option value="">Selecione...</option>';
     [...(CT['Repasse ao Cliente']||[])].sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(x=>{
       const o=document.createElement('option');o.value=x;o.textContent=x;s.appendChild(o);
     });
+  } else if(mod==='emprestimo'){
+    document.getElementById('div-emp-devedora').style.display='';
+    document.getElementById('div-emp-desc').style.display='';
+    // Popular categorias de transferência
+    const s=document.getElementById('fc2');
+    s.innerHTML='<option value="">Selecione...</option>';
+    [...(CT['Transferência']||[])].sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(x=>{
+      const o=document.createElement('option');o.value=x;o.textContent=x;s.appendChild(o);
+    });
+    // Adicionar categoria específica
+    const oEmp=document.createElement('option');
+    oEmp.value='Empréstimo entre entidades';
+    oEmp.textContent='Empréstimo entre entidades';
+    s.insertBefore(oEmp,s.options[1]);
+    s.value='Empréstimo entre entidades';
   }
 }
 
@@ -883,7 +912,10 @@ function previewLanc(){
   const foTxt=fo.options[fo.selectedIndex]?.text||'';
   const forn=document.getElementById('fforn').value.trim();
   const mod=document.getElementById('fmod')?.value||'';
-  const modLabel={'entre-contas':'Entre Contas','investimento':'Para Investimento','repasse-cliente':'Repasse ao Cliente'}[mod]||'';
+  const modLabel={'entre-contas':'Entre Contas','investimento':'Para Investimento','repasse-cliente':'Repasse ao Cliente','emprestimo':'Empréstimo entre Entidades'}[mod]||'';
+  const empDevId=document.getElementById('femp-dev')?.value||'';
+  const empDevNome=ENT.find(x=>x.id===empDevId)?.n||empDevId;
+  const empDesc=document.getElementById('femp-desc')?.value.trim()||'';
   const fundo=document.getElementById('ffundo')?.value.trim()||'';
   const valCli=document.getElementById('frepasse')?.value||'';
   const nomeCli=document.getElementById('fcli')?.value.trim()||'';
@@ -902,6 +934,8 @@ function previewLanc(){
     ${fundo?`<div class="mrow"><span class="ml">Fundo/Investimento</span><span class="mv">${fundo}</span></div>`:''}
     ${valCli?`<div class="mrow"><span class="ml">Valor do Cliente</span><span class="mv">${fr(parseFloat(valCli))}</span></div>`:''}
     ${nomeCli?`<div class="mrow"><span class="ml">Cliente</span><span class="mv">${nomeCli}</span></div>`:''}
+    ${empDevNome?`<div class="mrow"><span class="ml">Entidade Devedora</span><span class="mv" style="color:#c62828">${empDevNome}</span></div>`:''}
+    ${empDesc?`<div class="mrow"><span class="ml">Despesa Original</span><span class="mv">${empDesc}</span></div>`:''}
     <div class="mrow"><span class="ml">Status</span><span class="mv">${document.getElementById('fst').value}</span></div>
     ${fim?`<div class="mrow"><span class="ml">Imóvel</span><span class="mv">${fim}</span></div>`:''}
     ${fve?`<div class="mrow"><span class="ml">Veículo</span><span class="mv">${fve}</span></div>`:''}
@@ -919,6 +953,8 @@ async function confirmar(){
     await salvarTransferenciaInvestimento();
   } else if(t==='Transferência' && mod==='repasse-cliente'){
     await salvarRepasseCliente();
+  } else if(t==='Transferência' && mod==='emprestimo'){
+    await salvarEmprestimo();
   } else {
     await salvar();
   }
@@ -936,6 +972,8 @@ async function salvar(){
     if(mod==='entre-contas'&&!document.getElementById('fdt').value){alrt('la','er','⚠️ Selecione a conta destino.');return;}
     if(mod==='investimento'&&!document.getElementById('ffundo').value.trim()){alrt('la','er','⚠️ Informe o fundo/conta de investimento.');return;}
     if(mod==='repasse-cliente'&&!document.getElementById('frepasse').value){alrt('la','er','⚠️ Informe o valor do cliente.');return;}
+    if(mod==='emprestimo'&&!document.getElementById('femp-dev').value){alrt('la','er','⚠️ Selecione a entidade devedora.');return;}
+    if(mod==='emprestimo'&&document.getElementById('femp-dev').value===document.getElementById('fen').value){alrt('la','er','⚠️ A entidade devedora deve ser diferente da credora.');return;}
   }
   if(!d||!t||!e||!b||!cat||!v||!de){alrt('la','er','⚠️ Preencha todos os campos obrigatórios (*).');return;}
   const btn=document.querySelector('#pg-lancamento .bp');
@@ -960,7 +998,7 @@ async function salvar(){
 }
 
 function limpar(){
-  ['ft','fen','fb','fc2','fim','fve','fo','fdt','fob','fforn','fmod','ffundo','frepasse','fcli'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['ft','fen','fb','fc2','fim','fve','fo','fdt','fob','fforn','fmod','ffundo','frepasse','fcli','femp-dev','femp-desc'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('fv').value='';document.getElementById('fde').value='';
   document.getElementById('fst').value='Efetivado';
   document.getElementById('fd').value=new Date().toISOString().split('T')[0];
@@ -1105,12 +1143,13 @@ function extrato(){
   const w=document.getElementById('et');
   if(!L.length){w.innerHTML='<div class="emp"><div class="ei">📋</div><p>Nenhum lançamento.</p></div>';return;}
   const BC={Receita:'br',Despesa:'bd',Transferência:'bt',Investimento:'bi','Repasse ao Cliente':'bp2'};
+  const isEmp=l=>l.modalidade==='emprestimo';
   let h=`<table><thead><tr><th>Data</th><th>Tipo</th><th>Entidade</th><th>Banco</th><th>Categoria</th><th>Descrição</th><th>Imóvel</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>`;
   L.forEach(l=>{
     const s=l.tipo==='Receita'?'+':l.tipo==='Despesa'?'-':'';
     const c=l.tipo==='Receita'?'color:#2e7d32':l.tipo==='Despesa'?'color:#c62828':'';
     h+=`<tr><td>${fd(l.data)}</td><td><span class="bx ${BC[l.tipo]||'br'}">${l.tipo}</span></td>
-    <td>${l.entidade}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}</td>
+    <td>${l.entidade}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}${empBadge}</td>
     <td>${l.imovel||'–'}</td><td style="font-weight:600;${c}">${s} ${fr(l.valor)}</td>
     <td>${l.status}</td><td style="white-space:nowrap">
         ${isAdmin?`<button class="btn bw bsm" onclick="editarLanc('${l.id}')" style="margin-right:3px" title="Editar">✏️</button>`:''}
@@ -1231,6 +1270,26 @@ function mensal(){
     h+=`<tr><td>${fd(l.data)}</td><td>${l.tipo}</td><td>${l.entidade}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}</td><td>${l.imovel||''}</td><td style="font-weight:600;${col}">${s} ${fr(l.valor)}</td></tr>`;
   });
   h+=`</tbody></table></div></div>`;
+  // Seção de empréstimos
+  const empConcedidos=L.filter(l=>l.modalidade==='emprestimo'&&l.empCredora===e&&l.tipo==='Transferência'&&l.descricao.includes('A RECEBER'));
+  const empRecebidos=L.filter(l=>l.modalidade==='emprestimo'&&l.empDevedora===e&&l.tipo==='Transferência'&&l.descricao.includes('A PAGAR'));
+  if(empConcedidos.length||empRecebidos.length){
+    h+=`<div class="card" style="margin-top:14px;border-left:4px solid #3949ab">`;
+    h+=`<div class="st" style="margin-bottom:8px"><span>🔄</span>Empréstimos entre Entidades</div>`;
+    if(empConcedidos.length){
+      const totCred=empConcedidos.reduce((s,l)=>s+l.valor,0);
+      h+=`<div style="margin-bottom:10px"><b style="color:#2e7d32">💰 A Receber (empréstimos concedidos): ${fr(totCred)}</b><div class="tw"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>`;
+      empConcedidos.forEach(l=>{h+=`<tr><td>${fd(l.data)}</td><td>${l.descricao}</td><td style="color:#2e7d32;font-weight:600">${fr(l.valor)}</td></tr>`;});
+      h+=`</tbody></table></div></div>`;
+    }
+    if(empRecebidos.length){
+      const totDev=empRecebidos.reduce((s,l)=>s+l.valor,0);
+      h+=`<div><b style="color:#c62828">💸 A Pagar (empréstimos recebidos): ${fr(totDev)}</b><div class="tw"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>`;
+      empRecebidos.forEach(l=>{h+=`<tr><td>${fd(l.data)}</td><td>${l.descricao}</td><td style="color:#c62828;font-weight:600">${fr(l.valor)}</td></tr>`;});
+      h+=`</tbody></table></div></div>`;
+    }
+    h+=`</div>`;
+  }
   o.innerHTML=h;
 }
 
@@ -1390,6 +1449,7 @@ async function delCt(t,n){
 function ctTable(){
   const w=document.getElementById('ctt2');
   const BC={Receita:'br',Despesa:'bd',Transferência:'bt',Investimento:'bi','Repasse ao Cliente':'bp2'};
+  const isEmp=l=>l.modalidade==='emprestimo';
   const acoes=isAdmin
     ?'<th>Ações</th>'
     :'<th></th>';
@@ -1898,6 +1958,60 @@ async function enviarEmailPagamento(cp,dataPag,valPag){
 
 function verificarAlertasDiarios(){
   return; // E-mails temporariamente suspensos
+}
+
+// ═══════════════════════════════════════════════
+// EMPRÉSTIMO ENTRE ENTIDADES
+// ═══════════════════════════════════════════════
+async function salvarEmprestimo(){
+  const d=document.getElementById('fd').value;
+  const eCredId=document.getElementById('fen').value;   // quem paga (credora)
+  const bCred=document.getElementById('fb').value;       // banco sacado
+  const eDevId=document.getElementById('femp-dev').value; // quem recebe (devedora)
+  const cat=document.getElementById('fc2').value;
+  const v=parseFloat(document.getElementById('fv').value);
+  const de=document.getElementById('fde').value.trim();
+  const descOrig=document.getElementById('femp-desc').value.trim();
+  const forn=document.getElementById('fforn').value.trim();
+  const eCredNome=ENT.find(x=>x.id===eCredId)?.n||eCredId;
+  const eDevNome=ENT.find(x=>x.id===eDevId)?.n||eDevId;
+  const btn=document.querySelector('#pg-lancamento .bp');
+  btn.disabled=true;btn.textContent='⏳ Salvando...';
+  try{
+    const base={
+      data:d,categoria:cat,valor:v,fornecedor:forn,
+      imovel:document.getElementById('fim').value||'',
+      veiculo:document.getElementById('fve').value||'',
+      status:document.getElementById('fst').value,
+      obs:document.getElementById('fob').value||'',
+      modalidade:'emprestimo',
+      empCredora:eCredId, empDevedora:eDevId,
+      criadoEm:new Date().toISOString(),criadoPor:auth.currentUser?.email||'',
+    };
+    // Lançamento 1: Débito na conta da entidade credora (quem pagou)
+    await db.collection('lancamentos').add({...base,
+      tipo:'Despesa',entidade:eCredNome,entidadeId:eCredId,banco:bCred,
+      descricao:`🔄 EMPRÉSTIMO → ${eDevNome}: ${de}${descOrig?' ('+descOrig+')':''}`
+    });
+    // Lançamento 2: Crédito para a entidade credora (direito a receber)
+    await db.collection('lancamentos').add({...base,
+      tipo:'Transferência',entidade:eCredNome,entidadeId:eCredId,banco:bCred,
+      descricao:`🔄 A RECEBER DE ${eDevNome}: ${de}${descOrig?' ('+descOrig+')':''}`
+    });
+    // Lançamento 3: Débito na entidade devedora (dívida com a credora)
+    await db.collection('lancamentos').add({...base,
+      tipo:'Transferência',entidade:eDevNome,entidadeId:eDevId,banco:'',
+      descricao:`🔄 A PAGAR PARA ${eCredNome}: ${de}${descOrig?' ('+descOrig+')':''}`
+    });
+    alrt('la','ok',
+      `✅ Empréstimo registrado! 3 lançamentos criados:\n`+
+      `1. Débito em ${eCredNome} (${bCred})\n`+
+      `2. Crédito para ${eCredNome} (a receber de ${eDevNome})\n`+
+      `3. Débito em ${eDevNome} (deve a ${eCredNome})`);
+    limpar();
+    setTimeout(()=>document.getElementById('la').innerHTML='',5000);
+  }catch(e){alrt('la','er','❌ Erro: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='💾 Salvar Lançamento';}
 }
 
 // ═══════════════════════════════════════════════
