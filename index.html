@@ -2263,16 +2263,17 @@ function parseValor(val){
 }
 
 function mapModalidade(val){
-  if(!val) return "Despesa";
-  const v=val.toString().trim().toUpperCase();
-  // C = Crédito = Receita
-  if(v==="C"||v.startsWith("C")) return "Receita";
-  // D = Débito = Despesa
-  if(v==="D"||v.startsWith("D")) return "Despesa";
-  // T = Transferência
-  if(v==="T"||v.includes("TRANSF")) return "Transferência";
-  if(v.includes("INV")) return "Investimento";
-  if(v.includes("REP")) return "Repasse ao Cliente";
+  if(val===null||val===undefined||val==="") return "Despesa";
+  const v=String(val).trim();
+  if(v==="C") return "Receita";
+  if(v==="D") return "Despesa";
+  if(v==="T") return "Transferência";
+  // Fallback para outros valores
+  const vu=v.toUpperCase();
+  if(vu.startsWith("C")) return "Receita";
+  if(vu.startsWith("T")) return "Transferência";
+  if(vu.includes("INV")) return "Investimento";
+  if(vu.includes("REP")) return "Repasse ao Cliente";
   return "Despesa";
 }
 
