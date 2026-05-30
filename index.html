@@ -129,8 +129,8 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 .cam-line{position:absolute;top:50%;left:0;width:100%;height:2px;background:rgba(255,200,0,.9);animation:scan 2s linear infinite;}
 @keyframes scan{0%{top:15%;}100%{top:85%;}}
 #cam-msg{color:#fff;margin-top:12px;font-size:13px;text-align:center;max-width:300px;padding:0 10px;}
-#mconf,#mcat,#modal-conta,#modal-pagar,#modal-preview-conta,#modal-edit-lanc,#modal-import,#modal-nucleo-map{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
-#mconf.show,#mcat.show,#modal-conta.show,#modal-pagar.show,#modal-preview-conta.show,#modal-edit-lanc.show,#modal-import.show,#modal-nucleo-map.show{display:flex;}
+#mconf,#mcat,#modal-conta,#modal-pagar,#modal-preview-conta,#modal-edit-lanc,#modal-import,#modal-nucleo-map,#modal-excluir-imp{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+#mconf.show,#mcat.show,#modal-conta.show,#modal-pagar.show,#modal-preview-conta.show,#modal-edit-lanc.show,#modal-import.show,#modal-nucleo-map.show,#modal-excluir-imp.show{display:flex;}
 @media(max-width:768px){:root{--sw:0px;}#sb{transform:translateX(-240px);width:240px;transition:transform .3s;}#sb.aberto{transform:translateX(0);}#overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:99;}#overlay.show{display:block;}.chg{grid-template-columns:1fr;}.fg2{grid-template-columns:1fr;}#btn-menu{display:flex;}}@media(min-width:769px){#btn-menu{display:none;}#overlay{display:none!important;}}
 </style>
 </head>
@@ -198,6 +198,9 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 </select></div>
 </div>
 <div id="dash-cp-alert"></div>
+        <div id="dash-manut" style="display:none;margin-bottom:14px">
+          <button class="btn bd2 bsm" onclick="abrirExcluirImportados()" style="font-size:11px">🗑️ Excluir lançamentos importados</button>
+        </div>
         <div class="cg" id="dc"><div class="emp"><div class="ei">⏳</div><p>Carregando...</p></div></div>
 <div class="chg">
 <div class="cc"><h3>📈 Receitas vs Despesas</h3><canvas id="c1"></canvas></div>
@@ -698,6 +701,8 @@ function abrir(email){
   // Página inicial conforme perfil
   if(isAdmin){
     ir('dashboard', null);
+    document.getElementById('dash-manut').style.display='';
+
   } else {
     ir('lancamento', null);
   }
@@ -2259,11 +2264,15 @@ function parseValor(val){
 
 function mapModalidade(val){
   if(!val) return "Despesa";
-  const v=val.toString().toLowerCase().trim();
-  if(v.includes("cred")||v==="c") return "Receita";
-  if(v.includes("transf")||v==="t") return "Transferência";
-  if(v.includes("inv")) return "Investimento";
-  if(v.includes("rep")) return "Repasse ao Cliente";
+  const v=val.toString().trim().toUpperCase();
+  // C = Crédito = Receita
+  if(v==="C"||v.startsWith("C")) return "Receita";
+  // D = Débito = Despesa
+  if(v==="D"||v.startsWith("D")) return "Despesa";
+  // T = Transferência
+  if(v==="T"||v.includes("TRANSF")) return "Transferência";
+  if(v.includes("INV")) return "Investimento";
+  if(v.includes("REP")) return "Repasse ao Cliente";
   return "Despesa";
 }
 
@@ -2601,7 +2610,53 @@ async function confirmarImport(){
   alert(`✅ Importação concluída!\n${ok} lançamento(s) criado(s) no extrato (Contas Pagas).${erros?`\n⚠️ ${erros} erro(s).`:""}`);
 }
 
+// ═══════════════════════════════════════════════
+// EXCLUSÃO EM LOTE DE IMPORTADOS
+// ═══════════════════════════════════════════════
+async function abrirExcluirImportados(){
+  const total=LL.filter(l=>l.importado===true).length;
+  document.getElementById('mei-status').innerHTML=
+    total>0
+    ?`⚠️ Encontrados <b>${total} lançamentos importados</b> para excluir.`
+    :'✅ Nenhum lançamento importado encontrado.';
+  document.getElementById('mei-btn').disabled=total===0;
+  document.getElementById('modal-excluir-imp').classList.add('show');
+}
+
+async function excluirImportados(){
+  const importados=LL.filter(l=>l.importado===true);
+  if(!importados.length){alert("Nenhum lançamento importado encontrado.");return;}
+  if(!confirm(`Confirma a exclusão de ${importados.length} lançamentos importados? Esta ação não pode ser desfeita.`)) return;
+
+  const btn=document.getElementById('mei-btn');
+  const status=document.getElementById('mei-status');
+  btn.disabled=true;
+  let excluidos=0, erros=0;
+  const total=importados.length;
+
+  // Excluir em lotes de 500 (limite do Firestore batch)
+  const LOTE=400;
+  for(let i=0;i<importados.length;i+=LOTE){
+    const lote=importados.slice(i,i+LOTE);
+    const batch=db.batch();
+    lote.forEach(l=>batch.delete(db.collection("lancamentos").doc(l.id)));
+    try{
+      await batch.commit();
+      excluidos+=lote.length;
+    }catch(e){
+      erros+=lote.length;
+    }
+    const pct=Math.round((i+lote.length)/total*100);
+    status.innerHTML=`⏳ Excluindo... ${excluidos}/${total} (${pct}%)`;
+  }
+
+  document.getElementById('modal-excluir-imp').classList.remove('show');
+  btn.disabled=false;
+  alert(`✅ Concluído!\n${excluidos} lançamento(s) excluído(s).${erros?`\n⚠️ ${erros} erro(s).`:""}`);
+}
+
 // Popular selects de categoria nos filtros
+
 
 function popCatSelects(){
   // Coletar todas as categorias unicas dos lancamentos
@@ -2737,6 +2792,21 @@ function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}
       <button class="btn bw" onclick="fecharImport()">Cancelar</button>
       <button class="btn bw" id="imp-btn-voltar" style="display:none" onclick="voltarImport()">← Voltar</button>
       <button class="btn bp" id="imp-btn-confirmar" style="display:none;background:#5c6bc0" onclick="confirmarImport()">📥 Importar Selecionados</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EXCLUIR IMPORTADOS -->
+<div id="modal-excluir-imp">
+  <div class="mbox" style="max-width:500px">
+    <h3 style="color:#c62828">🗑️ Excluir Lançamentos Importados</h3>
+    <div id="mei-body">
+      <p style="font-size:13px;margin-bottom:14px">Esta operação irá excluir <b>todos</b> os lançamentos com marcação de importação.</p>
+      <div id="mei-status" style="font-size:13px;color:var(--mu);text-align:center;padding:10px"></div>
+    </div>
+    <div class="mbtns">
+      <button class="btn bw" onclick="document.getElementById('modal-excluir-imp').classList.remove('show')">Cancelar</button>
+      <button class="btn bd2" id="mei-btn" onclick="excluirImportados()">🗑️ Excluir Todos os Importados</button>
     </div>
   </div>
 </div>
