@@ -290,6 +290,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 <div class="bg">
 <button class="btn bp" onclick="previewLanc()">💾 Salvar Lançamento</button>
 <button class="btn bw" onclick="limpar()">🔄 Limpar</button>
+<button class="btn bsm" onclick="abrirImportModal()" style="background:#5c6bc0;color:#fff">📥 Importar Planilha</button>
 </div>
 </div>
 </div>
@@ -418,7 +419,6 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
             </select></div>
           <button class="btn bp bsm" onclick="abrirNovaConta()" style="align-self:flex-end">➕ Nova Conta</button>
           <button class="btn bw bsm" onclick="abrirCamera()" style="align-self:flex-end">📷 Ler Boleto</button>
-          <button class="btn bp bsm" onclick="abrirImportModal()" style="align-self:flex-end;background:#5c6bc0">📥 Importar Planilha</button>
         </div>
         <div id="cp-alert" style="margin-bottom:10px"></div>
         <div class="card"><div class="tw" id="cp-tbl"></div></div>
@@ -2400,23 +2400,25 @@ async function confirmarImport(){
   let ok=0,erros=0;
   for(const d of selecionados){
     try{
-      await db.collection("contas_pagar").add({
-        fornecedor:d.fornecedor,
-        valor:d.valor,
-        vencimento:d.vcto,
+      // Lançamento já ocorrido → vai para extrato (lancamentos)
+      await db.collection("lancamentos").add({
         data:d.data,
-        entidadeId:d.entidadeId,
+        tipo:d.tipo,
         entidade:d.entidade,
+        entidadeId:d.entidadeId,
         banco:d.banco,
         categoria:d.categoria,
+        valor:d.valor,
+        descricao:(d.fornecedor?(d.fornecedor+" - "):"")+(d.descricao||"Importado"),
+        fornecedor:d.fornecedor,
         boleto:d.boleto,
-        descricao:d.descricao,
         obs:d.obs,
-        tipo:d.tipo,
-        bd:d.bd,
-        bc:d.bc,
-        recorrencia:"unica",
-        status:"Pendente",
+        imovel:"",
+        veiculo:"",
+        destino:d.bc||"",
+        contaOutra:d.bd||"",
+        status:"Efetivado",
+        vencimento:d.vcto,
         importado:true,
         importadoPor:auth.currentUser?.email||"",
         criadoEm:new Date().toISOString(),
@@ -2427,7 +2429,7 @@ async function confirmarImport(){
   }
   btn.disabled=false;btn.textContent="📥 Importar Selecionados";
   fecharImport();
-  alert(`✅ Importação concluída!\n${ok} registro(s) importado(s) com sucesso.${erros?`\n⚠️ ${erros} erro(s).`:""}`);
+  alert(`✅ Importação concluída!\n${ok} lançamento(s) criado(s) no extrato (Contas Pagas).${erros?`\n⚠️ ${erros} erro(s).`:""}`);
 }
 
 // Popular selects de categoria nos filtros
@@ -2522,7 +2524,7 @@ function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}
 <!-- MODAL IMPORTAR PLANILHA -->
 <div id="modal-import">
   <div class="mbox" style="max-width:95vw;width:1100px;max-height:92vh;overflow-y:auto">
-    <h3>📥 Importar Planilha de Contas Pagas</h3>
+    <h3>📥 Importar Planilha — Contas Pagas (lançamentos já ocorridos)</h3>
     <div id="imp-step1">
       <p style="font-size:13px;color:var(--mu);margin-bottom:14px">
         Selecione um arquivo <b>Excel (.xlsx, .xls)</b> ou <b>CSV</b> com as colunas:<br>
