@@ -2265,6 +2265,7 @@ function parseValor(val){
 function mapModalidade(val){
   if(val===null||val===undefined||val==="") return "Despesa";
   const v=String(val).trim();
+  console.log("mapModalidade input:", JSON.stringify(val), "type:", typeof val, "v:", JSON.stringify(v));
   if(v==="C") return "Receita";
   if(v==="D") return "Despesa";
   if(v==="T") return "Transferência";
