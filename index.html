@@ -2299,6 +2299,45 @@ function lerArquivo(input){
   else reader.readAsArrayBuffer(file);
 }
 
+function mapNucleo(nucleo, imoveis){
+  // 1. Tentar mapear como entidade
+  const entMap = {
+    'ACGOES':'acgoes','GOES':'goes','CELIA':'celia','CÉLIA':'celia',
+    'EVA':'eva','SEMPRA':'sempra','MMP':'mmp',
+    'MUITO MAIS PEIXE':'mmp','MAIS PEIXE':'mmp'
+  };
+  const nu = (nucleo||'').toString().trim().toUpperCase();
+  if(entMap[nu]) return {tipo:'entidade', entidadeId:entMap[nu], entidade:ENT.find(e=>e.id===entMap[nu])?.n||nu, imovel:'', veiculo:''};
+
+  // 2. Tentar mapear como veiculo
+  const veicMap = {
+    'COROLA':'Corolla (ACGOES)','COROLLA':'Corolla (ACGOES)',
+    'FOX':'Fox (ACGOES)','SAVEIRO':'Saveiro (ACGOES)',
+    'TWISTER':'CBX 250 (Célia)'
+  };
+  if(veicMap[nu]) return {tipo:'veiculo', entidadeId:'acgoes', entidade:'ACGOES', imovel:'', veiculo:veicMap[nu]};
+
+  // 3. Tentar mapear como imovel - buscar nos imoveis cadastrados
+  // Comparar nucleo com codigo e descricao dos imoveis
+  const imKeys = Object.keys(imoveis);
+  for(const k of imKeys){
+    const im = imoveis[k];
+    const desc = (im.desc||'').toUpperCase();
+    // Verificar se nucleo aparece na descricao ou vice-versa
+    if(desc.includes(nu) || nu.includes(k.toUpperCase())) {
+      return {tipo:'imovel', entidadeId:'sempra', entidade:'SEMPRA (Holding)', imovel:k, veiculo:''};
+    }
+    // Verificar palavras-chave da descricao no nucleo
+    const palavras = desc.split(/[\s,\/\-]+/).filter(p=>p.length>3);
+    if(palavras.some(p=>nu.includes(p)||p.includes(nu))){
+      return {tipo:'imovel', entidadeId:'sempra', entidade:'SEMPRA (Holding)', imovel:k, veiculo:''};
+    }
+  }
+
+  // 4. Nao identificado - marcar para revisao manual
+  return {tipo:'desconhecido', entidadeId:'', entidade:nucleo, imovel:'', veiculo:''};
+}
+
 function processarLinhas(rows, filename){
   if(rows.length<2){
     document.getElementById('imp-status').textContent='❌ Arquivo vazio ou sem dados.';
@@ -2329,14 +2368,15 @@ function processarLinhas(rows, filename){
     const data=parseDateBR(dataRaw)||new Date().toISOString().split("T")[0];
     const vcto=parseDateBR(vctoRaw)||data;
     const nucleo=(cols.nucleo>=0?row[cols.nucleo]:"").toString().trim();
-    // Tentar mapear nucleo para entidade
-    const entObj=ENT.find(e=>e.n.toLowerCase().includes(nucleo.toLowerCase())||nucleo.toLowerCase().includes(e.n.toLowerCase().split(" ")[0]));
-    const entId=entObj?.id||"";
-    const entNome=entObj?.n||nucleo||"";
+    // Mapeamento inteligente de NUCLEO
+    const imoveisAtual=window._imoveis||IM||{};
+    const mapa=mapNucleo(nucleo, imoveisAtual);
     _impDados.push({
       sel:true,
       data, vcto,
-      entidadeId:entId, entidade:entNome, nucleo,
+      entidadeId:mapa.entidadeId, entidade:mapa.entidade,
+      nucleo, tipoNucleo:mapa.tipo,
+      imovel:mapa.imovel, veiculo:mapa.veiculo,
       valor:vlr,
       fornecedor:(cols.nom>=0?row[cols.nom]:"").toString().trim().toUpperCase(),
       boleto:(cols.cb>=0?row[cols.cb]:"").toString().trim(),
@@ -2368,12 +2408,21 @@ function renderPreview(){
   tbody.innerHTML="";
   _impDados.forEach((d,i)=>{
     const tr=document.createElement("tr");
-    const semEnt=!d.entidadeId?"style=\"background:#fff3cd\"":"";
+    const bgRow = d.tipoNucleo==='desconhecido'?'style="background:#ffebee"':
+                  d.tipoNucleo==='imovel'?'style="background:#e8f5e9"':
+                  d.tipoNucleo==='veiculo'?'style="background:#e3f2fd"':'';
+    const entLabel = d.tipoNucleo==='imovel'?
+      `${d.entidade} <small style="color:#2e7d32">[🏠 ${d.imovel}]</small>`:
+      d.tipoNucleo==='veiculo'?
+      `${d.entidade} <small style="color:#1565c0">[🚗 ${d.veiculo}]</small>`:
+      d.tipoNucleo==='desconhecido'?
+      `<span style="color:#c62828">⚠️ ${d.nucleo}</span>`:
+      d.entidade;
     tr.innerHTML=`
       <td><input type="checkbox" ${d.sel?"checked":""} onchange="_impDados[${i}].sel=this.checked"></td>
       <td>${fd(d.data)}</td>
       <td>${fd(d.vcto)}</td>
-      <td ${semEnt}>${d.entidade||"<span style=\"color:#c62828\">⚠️ "+d.nucleo+"</span>"}</td>
+      <td ${bgRow}>${entLabel}</td>
       <td>${d.fornecedor}</td>
       <td style="color:#c62828;font-weight:600">${fr(d.valor)}</td>
       <td>${d.categoria}</td>
@@ -2381,15 +2430,20 @@ function renderPreview(){
       <td>${d.tipo}</td>
       <td>${d.descricao}</td>
       <td>${d.obs}</td>
-      <td><span class="sb-pend">Pendente</span></td>
+      <td><span class="sb-pend">Efetivado</span></td>
     `;
     tbody.appendChild(tr);
   });
   // Alertar linhas sem entidade mapeada
-  const semEnt=_impDados.filter(d=>!d.entidadeId).length;
+  const desconhecidos=_impDados.filter(d=>d.tipoNucleo==='desconhecido').length;
+  const imoveis_map=_impDados.filter(d=>d.tipoNucleo==='imovel').length;
+  const veiculos_map=_impDados.filter(d=>d.tipoNucleo==='veiculo').length;
   const erroDiv=document.getElementById("imp-erros");
-  if(semEnt) erroDiv.innerHTML=`⚠️ <b>${semEnt} registro(s)</b> com entidade não identificada (destacados em amarelo). Verifique antes de importar.`;
-  else erroDiv.innerHTML="";
+  let msg='';
+  if(imoveis_map) msg+=`✅ <b>${imoveis_map}</b> mapeado(s) como imóvel (verde). `;
+  if(veiculos_map) msg+=`✅ <b>${veiculos_map}</b> mapeado(s) como veículo (azul). `;
+  if(desconhecidos) msg+=`⚠️ <b>${desconhecidos}</b> não identificado(s) (vermelho) — verifique antes de importar.`;
+  erroDiv.innerHTML=msg;
 }
 
 async function confirmarImport(){
@@ -2413,8 +2467,9 @@ async function confirmarImport(){
         fornecedor:d.fornecedor,
         boleto:d.boleto,
         obs:d.obs,
-        imovel:"",
-        veiculo:"",
+        imovel:d.imovel||"",
+        veiculo:d.veiculo||"",
+        nucleo:d.nucleo||"",
         destino:d.bc||"",
         contaOutra:d.bd||"",
         status:"Efetivado",
