@@ -1231,48 +1231,68 @@ function mensal(){
   if(im) L=L.filter(l=>l.imovel===im);
   const o=document.getElementById('mo');
   if(!L.length){o.innerHTML='<div class="emp"><div class="ei">📅</div><p>Nenhum lançamento neste período.</p></div>';return;}
-  const r=L.filter(l=>l.tipo==='Receita').reduce((s,l)=>s+l.valor,0);
-  const d=L.filter(l=>l.tipo==='Despesa').reduce((s,l)=>s+l.valor,0);
+  const r   = L.filter(l=>l.tipo==='Receita').reduce((s,l)=>s+l.valor,0);
+  const d   = L.filter(l=>l.tipo==='Despesa').reduce((s,l)=>s+l.valor,0);
+  const t   = L.filter(l=>l.tipo==='Transferência').reduce((s,l)=>s+l.valor,0);
+  const inv = L.filter(l=>l.tipo==='Investimento').reduce((s,l)=>s+l.valor,0);
+  const rep = L.filter(l=>l.tipo==='Repasse ao Cliente').reduce((s,l)=>s+l.valor,0);
   // Titulo com filtros aplicados
-  const filtroLabel=(en?` – ${ENT.find(x=>x.id===en)?.n||en}`:'')
-                   +(im?` – ${IM[im]?im+' – '+IM[im].desc:im}`:'')
-  const pe={};ENT.forEach(e=>{pe[e.n]={r:0,d:0};});
+  const filtroLabel=(en?' – '+(ENT.find(x=>x.id===en)?.n||en):'')
+                   +(im?' – '+(IM[im]?im+' – '+IM[im].desc:im):'');
+  // Por entidade
+  const pe={};ENT.forEach(e=>{pe[e.n]={r:0,d:0,t:0};});
   L.forEach(l=>{
-    if(!pe[l.entidade])pe[l.entidade]={r:0,d:0};
-    if(l.tipo==='Receita')pe[l.entidade].r+=l.valor;
-    if(l.tipo==='Despesa')pe[l.entidade].d+=l.valor;
+    if(!pe[l.entidade])pe[l.entidade]={r:0,d:0,t:0};
+    if(l.tipo==='Receita')     pe[l.entidade].r+=l.valor;
+    if(l.tipo==='Despesa')     pe[l.entidade].d+=l.valor;
+    if(l.tipo==='Transferência'||l.tipo==='Investimento'||l.tipo==='Repasse ao Cliente') pe[l.entidade].t+=l.valor;
   });
-  let h=`<div class="st"><span>📅</span>${MES[m-1]} / ${a}${filtroLabel}</div>
-  <div class="cg">
-    <div class="card G"><div class="cl">Receitas</div><div class="cv">${fr(r)}</div></div>
-    <div class="card R"><div class="cl">Despesas</div><div class="cv">${fr(d)}</div></div>
-    <div class="card ${r-d>=0?'B':'R'}"><div class="cl">Resultado</div><div class="cv">${fr(r-d)}</div></div>
-  </div>`;
-  // Por entidade (apenas se nao filtrado por entidade)
+  let h='<div class="st"><span>📅</span>'+MES[m-1]+' / '+a+filtroLabel+'</div>';
+  h+='<div class="cg">';
+  h+='<div class="card G"><div class="cl">Receitas</div><div class="cv">'+fr(r)+'</div><div class="cs">'+L.filter(l=>l.tipo==='Receita').length+' lançamentos</div></div>';
+  h+='<div class="card R"><div class="cl">Despesas</div><div class="cv">'+fr(d)+'</div><div class="cs">'+L.filter(l=>l.tipo==='Despesa').length+' lançamentos</div></div>';
+  h+='<div class="card '+(r-d>=0?'B':'R')+'"><div class="cl">Resultado</div><div class="cv">'+fr(r-d)+'</div></div>';
+  if(t>0) h+='<div class="card B"><div class="cl">Transferências</div><div class="cv">'+fr(t)+'</div><div class="cs">'+L.filter(l=>l.tipo==='Transferência').length+' lançamentos</div></div>';
+  if(inv>0) h+='<div class="card Y"><div class="cl">Investimentos</div><div class="cv">'+fr(inv)+'</div></div>';
+  if(rep>0) h+='<div class="card Y"><div class="cl">Repasses</div><div class="cv">'+fr(rep)+'</div></div>';
+  h+='</div>';
+  // Por entidade
   if(!en){
-    h+=`<div class="card" style="margin-bottom:14px"><div class="st" style="margin-bottom:8px"><span>👤</span>Por Entidade</div><div class="tw"><table><thead><tr><th>Entidade</th><th>Receitas</th><th>Despesas</th><th>Resultado</th></tr></thead><tbody>`;
-    Object.entries(pe).filter(([,v])=>v.r>0||v.d>0).forEach(([n,v])=>{
+    h+='<div class="card" style="margin-bottom:14px"><div class="st" style="margin-bottom:8px"><span>👤</span>Por Entidade</div><div class="tw"><table><thead><tr><th>Entidade</th><th>Receitas</th><th>Despesas</th><th>Transferências</th><th>Resultado</th></tr></thead><tbody>';
+    Object.entries(pe).filter(([,v])=>v.r>0||v.d>0||v.t>0).forEach(([n,v])=>{
       const x=v.r-v.d;
-      h+=`<tr><td>${n}</td><td style="color:#2e7d32">${fr(v.r)}</td><td style="color:#c62828">${fr(v.d)}</td><td style="font-weight:600;color:${x>=0?'#2e7d32':'#c62828'}">${fr(x)}</td></tr>`;
+      h+='<tr><td>'+n+'</td>';
+      h+='<td style="color:#2e7d32">'+fr(v.r)+'</td>';
+      h+='<td style="color:#c62828">'+fr(v.d)+'</td>';
+      h+='<td style="color:#1565c0">'+fr(v.t)+'</td>';
+      h+='<td style="font-weight:600;color:'+(x>=0?'#2e7d32':'#c62828')+'">'+fr(x)+'</td></tr>';
     });
-    h+=`</tbody></table></div></div>`;
+    h+='</tbody></table></div></div>';
   }
-  // Por categoria
+  // Por categoria (todos os tipos)
   const pc={};
-  L.forEach(l=>{const k=`${l.tipo} – ${l.categoria}`;pc[k]=(pc[k]||0)+l.valor;});
-  h+=`<div class="card"><div class="st" style="margin-bottom:8px"><span>🏷️</span>Por Categoria</div><div class="tw"><table><thead><tr><th>Tipo / Categoria</th><th>Total</th></tr></thead><tbody>`;
-  Object.entries(pc).sort().forEach(([k,v])=>{h+=`<tr><td>${k}</td><td>${fr(v)}</td></tr>`;});
-  h+=`</tbody></table></div></div>`;
-  // Lancamentos detalhados
-  h+=`<div class="card" style="margin-top:14px"><div class="st" style="margin-bottom:8px"><span>📋</span>Lançamentos</div><div class="tw"><table><thead><tr><th>Data</th><th>Tipo</th><th>Entidade</th><th>Banco</th><th>Categoria</th><th>Descrição</th><th>Imóvel</th><th>Valor</th></tr></thead><tbody>`;
+  L.forEach(l=>{const k=l.tipo+' – '+l.categoria;pc[k]=(pc[k]||0)+l.valor;});
+  h+='<div class="card" style="margin-bottom:14px"><div class="st" style="margin-bottom:8px"><span>🏷️</span>Por Categoria</div><div class="tw"><table><thead><tr><th>Tipo / Categoria</th><th>Total</th></tr></thead><tbody>';
+  Object.entries(pc).sort().forEach(([k,v])=>{h+='<tr><td>'+k+'</td><td>'+fr(v)+'</td></tr>';});
+  h+='</tbody></table></div></div>';
+  // Lançamentos detalhados (todos os tipos)
+  const BC={Receita:'br',Despesa:'bd',Transferência:'bt',Investimento:'bi','Repasse ao Cliente':'bp2'};
+  h+='<div class="card"><div class="st" style="margin-bottom:8px"><span>📋</span>Lançamentos</div><div class="tw"><table><thead><tr><th>Data</th><th>Tipo</th><th>Entidade</th><th>Banco</th><th>Categoria</th><th>Descrição</th><th>Imóvel</th><th>Valor</th></tr></thead><tbody>';
   L.sort((a,b)=>b.data.localeCompare(a.data)).forEach(l=>{
     const s=l.tipo==='Receita'?'+':l.tipo==='Despesa'?'-':'';
     const col=l.tipo==='Receita'?'color:#2e7d32':l.tipo==='Despesa'?'color:#c62828':'';
-    h+=`<tr><td>${fd(l.data)}</td><td>${l.tipo}</td><td>${l.entidade}</td><td>${l.banco}</td><td>${l.categoria}</td><td>${l.descricao}</td><td>${l.imovel||''}</td><td style="font-weight:600;${col}">${s} ${fr(l.valor)}</td></tr>`;
+    const empB=l.modalidade==='emprestimo'?'<span style="background:#e8eaf6;color:#3949ab;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px">🔄 EMP</span>':'';
+    h+='<tr><td>'+fd(l.data)+'</td>';
+    h+='<td><span class="bx '+(BC[l.tipo]||'br')+'">'+l.tipo+'</span></td>';
+    h+='<td>'+l.entidade+'</td><td>'+l.banco+'</td><td>'+l.categoria+'</td>';
+    h+='<td>'+l.descricao+empB+'</td>';
+    h+='<td>'+(l.imovel||'')+'</td>';
+    h+='<td style="font-weight:600;'+col+'">'+s+' '+fr(l.valor)+'</td></tr>';
   });
-  h+=`</tbody></table></div></div>`;
+  h+='</tbody></table></div></div>';
   o.innerHTML=h;
 }
+
 
 // ═══════════════════════════════════════════════
 // FECHAMENTO ANUAL
