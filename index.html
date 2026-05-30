@@ -9,6 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" async></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js" async></script>
 <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js" async></script>
 <style>
@@ -128,8 +129,8 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 .cam-line{position:absolute;top:50%;left:0;width:100%;height:2px;background:rgba(255,200,0,.9);animation:scan 2s linear infinite;}
 @keyframes scan{0%{top:15%;}100%{top:85%;}}
 #cam-msg{color:#fff;margin-top:12px;font-size:13px;text-align:center;max-width:300px;padding:0 10px;}
-#mconf,#mcat,#modal-conta,#modal-pagar,#modal-preview-conta,#modal-edit-lanc{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
-#mconf.show,#mcat.show,#modal-conta.show,#modal-pagar.show,#modal-preview-conta.show,#modal-edit-lanc.show{display:flex;}
+#mconf,#mcat,#modal-conta,#modal-pagar,#modal-preview-conta,#modal-edit-lanc,#modal-import{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+#mconf.show,#mcat.show,#modal-conta.show,#modal-pagar.show,#modal-preview-conta.show,#modal-edit-lanc.show,#modal-import.show{display:flex;}
 @media(max-width:768px){:root{--sw:0px;}#sb{transform:translateX(-240px);width:240px;transition:transform .3s;}#sb.aberto{transform:translateX(0);}#overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:99;}#overlay.show{display:block;}.chg{grid-template-columns:1fr;}.fg2{grid-template-columns:1fr;}#btn-menu{display:flex;}}@media(min-width:769px){#btn-menu{display:none;}#overlay{display:none!important;}}
 </style>
 </head>
@@ -417,6 +418,7 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
             </select></div>
           <button class="btn bp bsm" onclick="abrirNovaConta()" style="align-self:flex-end">➕ Nova Conta</button>
           <button class="btn bw bsm" onclick="abrirCamera()" style="align-self:flex-end">📷 Ler Boleto</button>
+          <button class="btn bp bsm" onclick="abrirImportModal()" style="align-self:flex-end;background:#5c6bc0">📥 Importar Planilha</button>
         </div>
         <div id="cp-alert" style="margin-bottom:10px"></div>
         <div class="card"><div class="tw" id="cp-tbl"></div></div>
@@ -2167,7 +2169,269 @@ async function salvarEdicaoLanc(){
   finally{btn.disabled=false;btn.textContent='💾 Salvar Alterações';}
 }
 
+// ═══════════════════════════════════════════════
+// IMPORTAÇÃO DE PLANILHA EXCEL/CSV
+// ═══════════════════════════════════════════════
+let _impDados = []; // dados lidos da planilha
+
+// Mapeamento de colunas
+const COL_MAP = {
+  data:       ['carimbo de data/hora','data','date','dt'],
+  user:       ['user','usuario','usuário'],
+  nucleo:     ['nucleo','núcleo','entidade','empresa'],
+  vcto:       ['vcto','vencimento','venc'],
+  vlr:        ['vlr','valor','value','vl'],
+  nom:        ['nom','nome','fornecedor','credor','beneficiario','beneficiário'],
+  cb:         ['cb','codigo de barras','código de barras','barcode'],
+  cat:        ['cat','categoria','category'],
+  np:         ['np','numero','número','doc','documento','processo','nf'],
+  obs:        ['obs','observacao','observação','observacoes','observações'],
+  m:          ['m','modalidade','tipo','type'],
+  ban:        ['ban','banco','bank'],
+  bd:         ['b(d)','bd','banco debito','banco débito','debito','débito'],
+  bc:         ['b(c)','bc','banco credito','banco crédito','credito','crédito'],
+};
+
+function abrirImportModal(){
+  document.getElementById('modal-import').classList.add('show');
+  document.getElementById('imp-step1').style.display='';
+  document.getElementById('imp-step2').style.display='none';
+  document.getElementById('imp-btn-voltar').style.display='none';
+  document.getElementById('imp-btn-confirmar').style.display='none';
+  document.getElementById('imp-status').textContent='';
+  document.getElementById('imp-file').value='';
+  _impDados=[];
+}
+
+function fecharImport(){
+  document.getElementById('modal-import').classList.remove('show');
+  _impDados=[];
+}
+
+function voltarImport(){
+  document.getElementById('imp-step1').style.display='';
+  document.getElementById('imp-step2').style.display='none';
+  document.getElementById('imp-btn-voltar').style.display='none';
+  document.getElementById('imp-btn-confirmar').style.display='none';
+  _impDados=[];
+}
+
+function selecionarTodos(v){
+  document.querySelectorAll('#imp-tbody input[type=checkbox]').forEach(cb=>cb.checked=v);
+  document.getElementById('chk-all').checked=v;
+}
+
+function encontrarColuna(headers, chave){
+  const sinonimos=COL_MAP[chave]||[chave];
+  for(let i=0;i<headers.length;i++){
+    const h=(headers[i]||"").toString().toLowerCase().trim();
+    if(sinonimos.some(s=>h.includes(s))) return i;
+  }
+  return -1;
+}
+
+function parseDateBR(val){
+  if(!val) return "";
+  const s=val.toString().trim();
+  // Formato DD/MM/YYYY ou DD/MM/YYYY HH:MM:SS
+  const m1=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if(m1) return `${m1[3]}-${m1[2].padStart(2,"0")}-${m1[1].padStart(2,"0")}`;
+  // Formato YYYY-MM-DD
+  const m2=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
+  // Numero serial do Excel
+  if(!isNaN(s)){
+    const d=new Date(Math.round((parseFloat(s)-25569)*86400*1000));
+    return d.toISOString().split("T")[0];
+  }
+  return s.split(" ")[0];
+}
+
+function parseValor(val){
+  if(!val) return 0;
+  const s=val.toString().replace(/[^\d,\.]/g,"");
+  // Formato BR: 1.234,56
+  if(s.includes(",")) return parseFloat(s.replace(/\./g,"").replace(",","."));
+  return parseFloat(s)||0;
+}
+
+function mapModalidade(val){
+  if(!val) return "Despesa";
+  const v=val.toString().toLowerCase().trim();
+  if(v.includes("cred")||v==="c") return "Receita";
+  if(v.includes("transf")||v==="t") return "Transferência";
+  if(v.includes("inv")) return "Investimento";
+  if(v.includes("rep")) return "Repasse ao Cliente";
+  return "Despesa";
+}
+
+function lerArquivo(input){
+  const file=input.files[0];
+  if(!file) return;
+  document.getElementById('imp-status').textContent='⏳ Lendo arquivo...';
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      let rows=[];
+      if(file.name.endsWith(".csv")){
+        // CSV
+        const text=e.target.result;
+        const lines=text.split(/\r?\n/).filter(l=>l.trim());
+        const sep=lines[0].includes(";")?";":","; 
+        rows=lines.map(l=>l.split(sep).map(v=>v.replace(/^"|"$/g,"").trim()));
+      } else {
+        // Excel - requer SheetJS
+        if(typeof XLSX==="undefined"){
+          alert("⚠️ Biblioteca Excel ainda carregando. Aguarde alguns segundos e tente novamente.");
+          document.getElementById('imp-status').textContent='';
+          return;
+        }
+        const wb=XLSX.read(e.target.result,{type:"array",cellDates:false});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+      }
+      processarLinhas(rows, file.name);
+    }catch(err){
+      document.getElementById('imp-status').textContent='❌ Erro ao ler arquivo: '+err.message;
+    }
+  };
+  if(file.name.endsWith(".csv")) reader.readAsText(file,"UTF-8");
+  else reader.readAsArrayBuffer(file);
+}
+
+function processarLinhas(rows, filename){
+  if(rows.length<2){
+    document.getElementById('imp-status').textContent='❌ Arquivo vazio ou sem dados.';
+    return;
+  }
+  const headers=rows[0].map(h=>(h||"").toString());
+  // Mapear colunas
+  const cols={};
+  Object.keys(COL_MAP).forEach(k=>{ cols[k]=encontrarColuna(headers,k); });
+  // Verificar colunas obrigatorias
+  const faltando=[];
+  if(cols.vlr<0) faltando.push('VLR (Valor)');
+  if(cols.data<0&&cols.vcto<0) faltando.push('Data ou VCTO');
+  if(faltando.length){
+    document.getElementById('imp-status').textContent='⚠️ Colunas não encontradas: '+faltando.join(', ')+'. Verifique o arquivo.';
+    return;
+  }
+  // Processar linhas
+  _impDados=[];
+  const erros=[];
+  for(let i=1;i<rows.length;i++){
+    const row=rows[i];
+    if(row.every(v=>!v)) continue; // linha vazia
+    const vlr=parseValor(cols.vlr>=0?row[cols.vlr]:"");
+    if(!vlr) continue; // sem valor, pular
+    const dataRaw=cols.data>=0?row[cols.data]:(cols.vcto>=0?row[cols.vcto]:"");
+    const vctoRaw=cols.vcto>=0?row[cols.vcto]:dataRaw;
+    const data=parseDateBR(dataRaw)||new Date().toISOString().split("T")[0];
+    const vcto=parseDateBR(vctoRaw)||data;
+    const nucleo=(cols.nucleo>=0?row[cols.nucleo]:"").toString().trim();
+    // Tentar mapear nucleo para entidade
+    const entObj=ENT.find(e=>e.n.toLowerCase().includes(nucleo.toLowerCase())||nucleo.toLowerCase().includes(e.n.toLowerCase().split(" ")[0]));
+    const entId=entObj?.id||"";
+    const entNome=entObj?.n||nucleo||"";
+    _impDados.push({
+      sel:true,
+      data, vcto,
+      entidadeId:entId, entidade:entNome, nucleo,
+      valor:vlr,
+      fornecedor:(cols.nom>=0?row[cols.nom]:"").toString().trim().toUpperCase(),
+      boleto:(cols.cb>=0?row[cols.cb]:"").toString().trim(),
+      categoria:(cols.cat>=0?row[cols.cat]:"").toString().trim(),
+      descricao:(cols.np>=0?row[cols.np]:"").toString().trim(),
+      obs:(cols.obs>=0?row[cols.obs]:"").toString().trim(),
+      tipo:mapModalidade(cols.m>=0?row[cols.m]:""),
+      banco:(cols.ban>=0?row[cols.ban]:"").toString().trim(),
+      bd:(cols.bd>=0?row[cols.bd]:"").toString().trim(),
+      bc:(cols.bc>=0?row[cols.bc]:"").toString().trim(),
+      user:(cols.user>=0?row[cols.user]:"").toString().trim(),
+      linhaOriginal:i+1,
+    });
+  }
+  if(!_impDados.length){
+    document.getElementById('imp-status').textContent='⚠️ Nenhum dado válido encontrado.';
+    return;
+  }
+  renderPreview();
+}
+
+function renderPreview(){
+  document.getElementById('imp-step1').style.display='none';
+  document.getElementById('imp-step2').style.display='';
+  document.getElementById('imp-btn-voltar').style.display='';
+  document.getElementById('imp-btn-confirmar').style.display='';
+  document.getElementById('imp-count').textContent=_impDados.length+' registro(s) encontrado(s)';
+  const tbody=document.getElementById("imp-tbody");
+  tbody.innerHTML="";
+  _impDados.forEach((d,i)=>{
+    const tr=document.createElement("tr");
+    const semEnt=!d.entidadeId?"style=\"background:#fff3cd\"":"";
+    tr.innerHTML=`
+      <td><input type="checkbox" ${d.sel?"checked":""} onchange="_impDados[${i}].sel=this.checked"></td>
+      <td>${fd(d.data)}</td>
+      <td>${fd(d.vcto)}</td>
+      <td ${semEnt}>${d.entidade||"<span style=\"color:#c62828\">⚠️ "+d.nucleo+"</span>"}</td>
+      <td>${d.fornecedor}</td>
+      <td style="color:#c62828;font-weight:600">${fr(d.valor)}</td>
+      <td>${d.categoria}</td>
+      <td>${d.banco}</td>
+      <td>${d.tipo}</td>
+      <td>${d.descricao}</td>
+      <td>${d.obs}</td>
+      <td><span class="sb-pend">Pendente</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  // Alertar linhas sem entidade mapeada
+  const semEnt=_impDados.filter(d=>!d.entidadeId).length;
+  const erroDiv=document.getElementById("imp-erros");
+  if(semEnt) erroDiv.innerHTML=`⚠️ <b>${semEnt} registro(s)</b> com entidade não identificada (destacados em amarelo). Verifique antes de importar.`;
+  else erroDiv.innerHTML="";
+}
+
+async function confirmarImport(){
+  const selecionados=_impDados.filter(d=>d.sel);
+  if(!selecionados.length){alert("Selecione ao menos um registro.");return;}
+  const btn=document.getElementById("imp-btn-confirmar");
+  btn.disabled=true;btn.textContent="⏳ Importando...";
+  let ok=0,erros=0;
+  for(const d of selecionados){
+    try{
+      await db.collection("contas_pagar").add({
+        fornecedor:d.fornecedor,
+        valor:d.valor,
+        vencimento:d.vcto,
+        data:d.data,
+        entidadeId:d.entidadeId,
+        entidade:d.entidade,
+        banco:d.banco,
+        categoria:d.categoria,
+        boleto:d.boleto,
+        descricao:d.descricao,
+        obs:d.obs,
+        tipo:d.tipo,
+        bd:d.bd,
+        bc:d.bc,
+        recorrencia:"unica",
+        status:"Pendente",
+        importado:true,
+        importadoPor:auth.currentUser?.email||"",
+        criadoEm:new Date().toISOString(),
+        criadoPor:d.user||auth.currentUser?.email||"",
+      });
+      ok++;
+    }catch(e){erros++;}
+  }
+  btn.disabled=false;btn.textContent="📥 Importar Selecionados";
+  fecharImport();
+  alert(`✅ Importação concluída!\n${ok} registro(s) importado(s) com sucesso.${erros?`\n⚠️ ${erros} erro(s).`:""}`);
+}
+
 // Popular selects de categoria nos filtros
+
 function popCatSelects(){
   // Coletar todas as categorias unicas dos lancamentos
   const cats=[...new Set(LL.map(l=>l.categoria).filter(x=>x))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
@@ -2251,6 +2515,57 @@ function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}
     <div style="margin-top:14px;display:flex;gap:10px;justify-content:center">
       <button class="btn bw" onclick="fecharCamera()">Cancelar</button>
       <button class="btn bp" onclick="fecharCamera();abrirNovaConta()">✏️ Digitar Manual</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORTAR PLANILHA -->
+<div id="modal-import">
+  <div class="mbox" style="max-width:95vw;width:1100px;max-height:92vh;overflow-y:auto">
+    <h3>📥 Importar Planilha de Contas Pagas</h3>
+    <div id="imp-step1">
+      <p style="font-size:13px;color:var(--mu);margin-bottom:14px">
+        Selecione um arquivo <b>Excel (.xlsx, .xls)</b> ou <b>CSV</b> com as colunas:<br>
+        <code style="font-size:11px;background:#f5f5f5;padding:3px 8px;border-radius:4px">
+          Carimbo de data/hora | USER | NUCLEO | VCTO | VLR | NOM | CB | CAT | NP | OBS | M | BAN | B(D) | B(C)
+        </code>
+      </p>
+      <div style="border:2px dashed var(--bd);border-radius:10px;padding:30px;text-align:center;margin-bottom:14px">
+        <div style="font-size:36px;margin-bottom:8px">📄</div>
+        <p style="color:var(--mu);margin-bottom:12px">Arraste o arquivo aqui ou clique para selecionar</p>
+        <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="lerArquivo(this)">
+        <button class="btn bp" onclick="document.getElementById('imp-file').click()">Selecionar Arquivo</button>
+      </div>
+      <div id="imp-status" style="font-size:13px;color:var(--mu);text-align:center"></div>
+    </div>
+    <div id="imp-step2" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <span id="imp-count" style="font-weight:700;color:var(--p)"></span>
+          <span style="font-size:12px;color:var(--mu);margin-left:8px">Selecione os que deseja importar</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn bw bsm" onclick="selecionarTodos(true)">✅ Todos</button>
+          <button class="btn bw bsm" onclick="selecionarTodos(false)">⬜ Nenhum</button>
+        </div>
+      </div>
+      <div class="tw" style="max-height:50vh;overflow-y:auto">
+        <table id="imp-preview-table">
+          <thead><tr>
+            <th style="width:30px"><input type="checkbox" id="chk-all" onchange="selecionarTodos(this.checked)"></th>
+            <th>Data</th><th>Vencimento</th><th>Entidade</th><th>Fornecedor</th>
+            <th>Valor</th><th>Categoria</th><th>Banco</th><th>Modalidade</th>
+            <th>Nº Doc</th><th>Obs</th><th>Status</th>
+          </tr></thead>
+          <tbody id="imp-tbody"></tbody>
+        </table>
+      </div>
+      <div id="imp-erros" style="margin-top:10px;font-size:12px;color:#c62828"></div>
+    </div>
+    <div class="mbtns">
+      <button class="btn bw" onclick="fecharImport()">Cancelar</button>
+      <button class="btn bw" id="imp-btn-voltar" style="display:none" onclick="voltarImport()">← Voltar</button>
+      <button class="btn bp" id="imp-btn-confirmar" style="display:none;background:#5c6bc0" onclick="confirmarImport()">📥 Importar Selecionados</button>
     </div>
   </div>
 </div>
