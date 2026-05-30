@@ -129,8 +129,8 @@ tbody td{padding:7px 9px;border-bottom:1px solid var(--bd);}
 .cam-line{position:absolute;top:50%;left:0;width:100%;height:2px;background:rgba(255,200,0,.9);animation:scan 2s linear infinite;}
 @keyframes scan{0%{top:15%;}100%{top:85%;}}
 #cam-msg{color:#fff;margin-top:12px;font-size:13px;text-align:center;max-width:300px;padding:0 10px;}
-#mconf,#mcat,#modal-conta,#modal-pagar,#modal-preview-conta,#modal-edit-lanc,#modal-import{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
-#mconf.show,#mcat.show,#modal-conta.show,#modal-pagar.show,#modal-preview-conta.show,#modal-edit-lanc.show,#modal-import.show{display:flex;}
+#mconf,#mcat,#modal-conta,#modal-pagar,#modal-preview-conta,#modal-edit-lanc,#modal-import,#modal-nucleo-map{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+#mconf.show,#mcat.show,#modal-conta.show,#modal-pagar.show,#modal-preview-conta.show,#modal-edit-lanc.show,#modal-import.show,#modal-nucleo-map.show{display:flex;}
 @media(max-width:768px){:root{--sw:0px;}#sb{transform:translateX(-240px);width:240px;transition:transform .3s;}#sb.aberto{transform:translateX(0);}#overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:99;}#overlay.show{display:block;}.chg{grid-template-columns:1fr;}.fg2{grid-template-columns:1fr;}#btn-menu{display:flex;}}@media(min-width:769px){#btn-menu{display:none;}#overlay{display:none!important;}}
 </style>
 </head>
@@ -2192,7 +2192,9 @@ const COL_MAP = {
   bc:         ['b(c)','bc','banco credito','banco crédito','credito','crédito'],
 };
 
-function abrirImportModal(){
+async function abrirImportModal(){
+  // Carregar mapeamento salvo
+  await carregarNucleoMap();
   document.getElementById('modal-import').classList.add('show');
   document.getElementById('imp-step1').style.display='';
   document.getElementById('imp-step2').style.display='none';
@@ -2299,44 +2301,124 @@ function lerArquivo(input){
   else reader.readAsArrayBuffer(file);
 }
 
-function mapNucleo(nucleo, imoveis){
-  // 1. Tentar mapear como entidade
-  const entMap = {
-    'ACGOES':'acgoes','GOES':'goes','CELIA':'celia','CÉLIA':'celia',
-    'EVA':'eva','SEMPRA':'sempra','MMP':'mmp',
-    'MUITO MAIS PEIXE':'mmp','MAIS PEIXE':'mmp'
-  };
-  const nu = (nucleo||'').toString().trim().toUpperCase();
-  if(entMap[nu]) return {tipo:'entidade', entidadeId:entMap[nu], entidade:ENT.find(e=>e.id===entMap[nu])?.n||nu, imovel:'', veiculo:''};
+// Cache do mapeamento salvo no Firestore
+let _nucleoMapCache = null;
 
-  // 2. Tentar mapear como veiculo
-  const veicMap = {
-    'COROLA':'Corolla (ACGOES)','COROLLA':'Corolla (ACGOES)',
-    'FOX':'Fox (ACGOES)','SAVEIRO':'Saveiro (ACGOES)',
-    'TWISTER':'CBX 250 (Célia)'
-  };
-  if(veicMap[nu]) return {tipo:'veiculo', entidadeId:'acgoes', entidade:'ACGOES', imovel:'', veiculo:veicMap[nu]};
-
-  // 3. Tentar mapear como imovel - buscar nos imoveis cadastrados
-  // Comparar nucleo com codigo e descricao dos imoveis
-  const imKeys = Object.keys(imoveis);
-  for(const k of imKeys){
-    const im = imoveis[k];
-    const desc = (im.desc||'').toUpperCase();
-    // Verificar se nucleo aparece na descricao ou vice-versa
-    if(desc.includes(nu) || nu.includes(k.toUpperCase())) {
-      return {tipo:'imovel', entidadeId:'sempra', entidade:'SEMPRA (Holding)', imovel:k, veiculo:''};
-    }
-    // Verificar palavras-chave da descricao no nucleo
-    const palavras = desc.split(/[\s,\/\-]+/).filter(p=>p.length>3);
-    if(palavras.some(p=>nu.includes(p)||p.includes(nu))){
-      return {tipo:'imovel', entidadeId:'sempra', entidade:'SEMPRA (Holding)', imovel:k, veiculo:''};
-    }
-  }
-
-  // 4. Nao identificado - marcar para revisao manual
-  return {tipo:'desconhecido', entidadeId:'', entidade:nucleo, imovel:'', veiculo:''};
+async function carregarNucleoMap(){
+  if(_nucleoMapCache) return _nucleoMapCache;
+  try{
+    const snap = await db.doc('config/nucleo_map').get();
+    _nucleoMapCache = snap.exists ? snap.data().mapa||{} : {};
+  }catch(e){ _nucleoMapCache={}; }
+  return _nucleoMapCache;
 }
+
+function mapNucleo(nucleo, imoveis, mapaFixo){
+  const nu=(nucleo||'').toString().trim().toUpperCase();
+  // 1. Verificar mapa fixo salvo no Firestore
+  if(mapaFixo && mapaFixo[nu]){
+    const m=mapaFixo[nu];
+    return {tipo:m.tipo, entidadeId:m.entidadeId, entidade:m.entidade, imovel:m.imovel||'', veiculo:m.veiculo||''};
+  }
+  // 2. Entidades conhecidas
+  const entMap={'ACGOES':'acgoes','GOES':'goes','CELIA':'celia','CÉLIA':'celia',
+    'EVA':'eva','SEMPRA':'sempra','MMP':'mmp','MUITO MAIS PEIXE':'mmp','MAIS PEIXE':'mmp'};
+  if(entMap[nu]) return {tipo:'entidade',entidadeId:entMap[nu],entidade:ENT.find(e=>e.id===entMap[nu])?.n||nu,imovel:'',veiculo:''};
+  // 3. Veículos conhecidos
+  const veicMap={'COROLA':'Corolla (ACGOES)','COROLLA':'Corolla (ACGOES)',
+    'FOX':'Fox (ACGOES)','SAVEIRO':'Saveiro (ACGOES)','TWISTER':'CBX 250 (Célia)'};
+  if(veicMap[nu]){
+    const entId=nu==='TWISTER'?'celia':'acgoes';
+    return {tipo:'veiculo',entidadeId:entId,entidade:ENT.find(e=>e.id===entId)?.n||'',imovel:'',veiculo:veicMap[nu]};
+  }
+  // 4. Não identificado
+  return {tipo:'desconhecido',entidadeId:'',entidade:nucleo,imovel:'',veiculo:''};
+}
+
+// ── Mapeamento interativo ──────────────────────
+let _nucleosPendentes = []; // NUCLEOs que precisam ser mapeados
+let _dadosParaPreview = []; // dados aguardando mapeamento
+
+function fecharNucleoMap(){
+  document.getElementById('modal-nucleo-map').classList.remove('show');
+  _nucleosPendentes=[];
+  _dadosParaPreview=[];
+}
+
+async function confirmarNucleoMap(){
+  // Coletar mapeamentos definidos pelo usuario
+  const tbody=document.getElementById('nucleo-map-tbody');
+  const rows=tbody.querySelectorAll('tr');
+  const novoMapa={};
+  let incompleto=false;
+
+  rows.forEach(tr=>{
+    const nucleo=tr.dataset.nucleo;
+    const tipo=tr.querySelector('.nm-tipo').value;
+    const dest=tr.querySelector('.nm-dest').value;
+    if(!tipo||!dest){ incompleto=true; return; }
+
+    if(tipo==='entidade'){
+      const entObj=ENT.find(e=>e.id===dest);
+      novoMapa[nucleo]={tipo:'entidade',entidadeId:dest,entidade:entObj?.n||dest,imovel:'',veiculo:''};
+    } else if(tipo==='imovel'){
+      const im=IM[dest];
+      novoMapa[nucleo]={tipo:'imovel',entidadeId:'sempra',entidade:'SEMPRA (Holding)',imovel:dest,veiculo:''};
+    } else if(tipo==='veiculo'){
+      const entId=dest.includes('Célia')||dest.includes('Celia')?'celia':'acgoes';
+      novoMapa[nucleo]={tipo:'veiculo',entidadeId:entId,entidade:ENT.find(e=>e.id===entId)?.n||'',imovel:'',veiculo:dest};
+    }
+  });
+
+  if(incompleto){ alert('⚠️ Defina o tipo e destino para todos os NUCLEOs.'); return; }
+
+  // Salvar no Firestore (merge com mapa existente)
+  const mapaAtual=await carregarNucleoMap();
+  const mapaFinal={...mapaAtual,...novoMapa};
+  try{
+    await db.doc('config/nucleo_map').set({mapa:mapaFinal});
+    _nucleoMapCache=mapaFinal;
+    alert('✅ Mapeamento salvo! Aplicando aos dados...');
+  }catch(e){ alert('Erro ao salvar mapeamento: '+e.message); return; }
+
+  // Aplicar mapeamento aos dados pendentes
+  _dadosParaPreview.forEach(d=>{
+    const m=mapNucleo(d.nucleo, IM, mapaFinal);
+    d.entidadeId=m.entidadeId;
+    d.entidade=m.entidade;
+    d.tipoNucleo=m.tipo;
+    d.imovel=m.imovel;
+    d.veiculo=m.veiculo;
+  });
+
+  document.getElementById('modal-nucleo-map').classList.remove('show');
+  _impDados=_dadosParaPreview;
+  renderPreview();
+}
+
+function onNucleoTipoChange(sel){
+  const tr=sel.closest('tr');
+  const tipo=sel.value;
+  const destSel=tr.querySelector('.nm-dest');
+  destSel.innerHTML='<option value="">Selecione...</option>';
+
+  if(tipo==='entidade'){
+    ENT.forEach(e=>{const o=document.createElement('option');o.value=e.id;o.textContent=e.n;destSel.appendChild(o);});
+  } else if(tipo==='imovel'){
+    const ks=Object.keys(IM).sort((a,b)=>parseInt(a.replace('im',''))-parseInt(b.replace('im','')));
+    ks.forEach(k=>{const im=IM[k];const o=document.createElement('option');o.value=k;o.textContent=im?k+' – '+im.desc:k;destSel.appendChild(o);});
+    // Adicionar im1-im45 sem cadastro
+    for(let i=1;i<=45;i++){
+      const k='im'+i;
+      if(!IM[k]){const o=document.createElement('option');o.value=k;o.textContent=k+' (sem cadastro)';destSel.appendChild(o);}
+    }
+  } else if(tipo==='veiculo'){
+    ['Corolla (ACGOES)','Saveiro (ACGOES)','Fox (ACGOES)','CBX 250 (Célia)'].forEach(v=>{
+      const o=document.createElement('option');o.value=v;o.textContent=v;destSel.appendChild(o);
+    });
+  }
+}
+
 
 function processarLinhas(rows, filename){
   if(rows.length<2){
@@ -2368,9 +2450,9 @@ function processarLinhas(rows, filename){
     const data=parseDateBR(dataRaw)||new Date().toISOString().split("T")[0];
     const vcto=parseDateBR(vctoRaw)||data;
     const nucleo=(cols.nucleo>=0?row[cols.nucleo]:"").toString().trim();
-    // Mapeamento inteligente de NUCLEO
+    // Mapeamento inteligente de NUCLEO (usa cache do Firestore)
     const imoveisAtual=window._imoveis||IM||{};
-    const mapa=mapNucleo(nucleo, imoveisAtual);
+    const mapa=mapNucleo(nucleo, imoveisAtual, _nucleoMapCache||{});
     _impDados.push({
       sel:true,
       data, vcto,
@@ -2395,7 +2477,39 @@ function processarLinhas(rows, filename){
     document.getElementById('imp-status').textContent='⚠️ Nenhum dado válido encontrado.';
     return;
   }
-  renderPreview();
+  // Verificar se ha NUCLEOs nao mapeados
+  const desconhecidos=[...new Set(_impDados.filter(d=>d.tipoNucleo==='desconhecido').map(d=>d.nucleo))];
+  if(desconhecidos.length){
+    // Mostrar modal de mapeamento interativo
+    _dadosParaPreview=[..._impDados];
+    _nucleosPendentes=desconhecidos;
+    const tbody=document.getElementById('nucleo-map-tbody');
+    tbody.innerHTML='';
+    // Contar ocorrencias de cada nucleo
+    const contagem={};
+    _impDados.forEach(d=>{if(d.tipoNucleo==='desconhecido') contagem[d.nucleo]=(contagem[d.nucleo]||0)+1;});
+    desconhecidos.forEach(nu=>{
+      const tr=document.createElement('tr');
+      tr.dataset.nucleo=nu;
+      tr.innerHTML=`
+        <td><b>${nu}</b></td>
+        <td><select class="nm-tipo fg" onchange="onNucleoTipoChange(this)" style="width:130px;border:1.5px solid var(--bd);border-radius:7px;padding:5px">
+          <option value="">Selecione...</option>
+          <option value="entidade">Entidade</option>
+          <option value="imovel">Imóvel</option>
+          <option value="veiculo">Veículo</option>
+        </select></td>
+        <td><select class="nm-dest" style="width:200px;border:1.5px solid var(--bd);border-radius:7px;padding:5px">
+          <option value="">Selecione o tipo primeiro</option>
+        </select></td>
+        <td style="text-align:center">${contagem[nu]||0}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('modal-nucleo-map').classList.add('show');
+  } else {
+    renderPreview();
+  }
 }
 
 function renderPreview(){
@@ -2623,6 +2737,32 @@ function alrt(id,t,m){document.getElementById(id).innerHTML=`<div class="al ${t}
       <button class="btn bw" onclick="fecharImport()">Cancelar</button>
       <button class="btn bw" id="imp-btn-voltar" style="display:none" onclick="voltarImport()">← Voltar</button>
       <button class="btn bp" id="imp-btn-confirmar" style="display:none;background:#5c6bc0" onclick="confirmarImport()">📥 Importar Selecionados</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MAPEAMENTO DE NUCLEOs -->
+<div id="modal-nucleo-map">
+  <div class="mbox" style="max-width:700px;max-height:92vh;overflow-y:auto">
+    <h3>🗂️ Mapeamento de NUCLEOs</h3>
+    <p style="font-size:12px;color:var(--mu);margin-bottom:14px">
+      Os NUCLEOs abaixo não foram identificados automaticamente.<br>
+      Defina o tipo e destino de cada um. O mapeamento será salvo para importações futuras.
+    </p>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>NUCLEO</th>
+          <th>Tipo</th>
+          <th>Destino</th>
+          <th>Qtd registros</th>
+        </tr></thead>
+        <tbody id="nucleo-map-tbody"></tbody>
+      </table>
+    </div>
+    <div class="mbtns">
+      <button class="btn bw" onclick="fecharNucleoMap()">Cancelar</button>
+      <button class="btn bp" onclick="confirmarNucleoMap()" style="background:#5c6bc0">✅ Confirmar Mapeamento</button>
     </div>
   </div>
 </div>
