@@ -1344,28 +1344,61 @@ function porEnt(){
   });
   h+='</tbody></table></div></div>';
   // Secao de emprestimos
+  // Empréstimos agrupados por entidade
   const empC=L.filter(l=>l.modalidade==='emprestimo'&&l.empCredora===e&&l.tipo==='Transferência');
   const empD=L.filter(l=>l.modalidade==='emprestimo'&&l.empDevedora===e&&l.tipo==='Transferência');
   if(empC.length||empD.length){
     h+='<div class="card" style="margin-top:14px;border-left:4px solid #3949ab">';
     h+='<div class="st" style="margin-bottom:8px"><span>🔄</span>Empréstimos entre Entidades</div>';
+    // A Receber: agrupar por entidade devedora
     if(empC.length){
       const tC=empC.reduce((s,l)=>s+l.valor,0);
-      h+='<div style="margin-bottom:8px"><b style="color:#2e7d32">💰 A Receber (empréstimos concedidos): '+fr(tC)+'</b>';
-      h+='<div class="tw"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>';
-      empC.forEach(l=>{h+='<tr><td>'+fd(l.data)+'</td><td>'+l.descricao+'</td><td style="color:#2e7d32;font-weight:600">'+fr(l.valor)+'</td></tr>';});
+      h+='<div style="margin-bottom:10px">';
+      h+='<b style="color:#2e7d32">💰 Total a Receber (empréstimos concedidos): '+fr(tC)+'</b>';
+      // Agrupar por entidade devedora
+      const grpC={};
+      empC.forEach(l=>{
+        const devNome=ENT.find(x=>x.id===l.empDevedora)?.n||l.empDevedora||'Desconhecido';
+        if(!grpC[devNome]) grpC[devNome]={total:0,lancs:[]};
+        grpC[devNome].total+=l.valor;
+        grpC[devNome].lancs.push(l);
+      });
+      h+='<div class="tw"><table><thead><tr><th>Devedor</th><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>';
+      Object.entries(grpC).forEach(([dev,g])=>{
+        g.lancs.forEach((l,i)=>{
+          h+='<tr>';
+          if(i===0) h+='<td rowspan="'+g.lancs.length+'" style="font-weight:700;color:#2e7d32;vertical-align:top">'+dev+'<br><small>Total: '+fr(g.total)+'</small></td>';
+          h+='<td>'+fd(l.data)+'</td><td>'+l.descricao+'</td><td style="color:#2e7d32;font-weight:600">'+fr(l.valor)+'</td></tr>';
+        });
+      });
       h+='</tbody></table></div></div>';
     }
+    // A Pagar: agrupar por entidade credora
     if(empD.length){
       const tD=empD.reduce((s,l)=>s+l.valor,0);
-      h+='<div><b style="color:#c62828">💸 A Pagar (empréstimos recebidos): '+fr(tD)+'</b>';
-      h+='<div class="tw"><table><thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>';
-      empD.forEach(l=>{h+='<tr><td>'+fd(l.data)+'</td><td>'+l.descricao+'</td><td style="color:#c62828;font-weight:600">'+fr(l.valor)+'</td></tr>';});
+      h+='<div>';
+      h+='<b style="color:#c62828">💸 Total a Pagar (empréstimos recebidos): '+fr(tD)+'</b>';
+      // Agrupar por entidade credora
+      const grpD={};
+      empD.forEach(l=>{
+        const credNome=ENT.find(x=>x.id===l.empCredora)?.n||l.empCredora||'Desconhecido';
+        if(!grpD[credNome]) grpD[credNome]={total:0,lancs:[]};
+        grpD[credNome].total+=l.valor;
+        grpD[credNome].lancs.push(l);
+      });
+      h+='<div class="tw"><table><thead><tr><th>Credor</th><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>';
+      Object.entries(grpD).forEach(([cred,g])=>{
+        g.lancs.forEach((l,i)=>{
+          h+='<tr>';
+          if(i===0) h+='<td rowspan="'+g.lancs.length+'" style="font-weight:700;color:#c62828;vertical-align:top">'+cred+'<br><small>Total: '+fr(g.total)+'</small></td>';
+          h+='<td>'+fd(l.data)+'</td><td>'+l.descricao+'</td><td style="color:#c62828;font-weight:600">'+fr(l.valor)+'</td></tr>';
+        });
+      });
       h+='</tbody></table></div></div>';
     }
     h+='</div>';
   }
-  o.innerHTML=h;
+    o.innerHTML=h;
 }
 function porImovel(){
   if(!isAdmin) return;
